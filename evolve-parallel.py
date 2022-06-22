@@ -1,10 +1,12 @@
 import sys
-sys.path.insert(0, 'C:/Users/alani/OneDrive/Desktop/Coding/Stella/tools')
+sys.path.insert(0, './src')
+sys.path.insert(1, './src/tools')
 
 import neat
 import pickle
 import re
 import time
+import sys
 
 from genes import *
 from creature import *

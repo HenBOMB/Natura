@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, 'C:/Users/alani/OneDrive/Desktop/Coding/Stella/tools')
+sys.path.insert(0, './src')
+sys.path.insert(1, './src/tools')
 
 if __name__ != '__main__':
     raise ImportError("Cannot import module 'display.py'")

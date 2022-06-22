@@ -1,4 +1,4 @@
-from tkinter import W
+import math
 
 from genes import *
 from tools import *

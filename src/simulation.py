@@ -36,6 +36,8 @@ DRAW_STATS          = False
 COLOR_BACKGROUND    = (0, 0, 16)
 COLOR_HIGHLIGHT     = (COLOR_BACKGROUND[0], COLOR_BACKGROUND[1], COLOR_BACKGROUND[2] * 4)
 
+QUIT = False
+
 def draw_properties(creature: Creature):
     width, height = (300, 100)
     surf = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -77,7 +79,10 @@ def draw_creature(c: Creature, camera: Camera, highlight: bool = False):
         camera.draw_circle((200, 200, 200), c.pos, c.size_px+5, 1)
 
 def eval_genomes(_genomes: list, config: neat.Config):
-    global DRAW_NETWORK, DRAW_STATS
+    global DRAW_NETWORK, DRAW_STATS, QUIT
+    if QUIT:
+        pygame.quit()
+        sys.exit()
 
     population  = []
     genomes     = []
@@ -94,9 +99,9 @@ def eval_genomes(_genomes: list, config: neat.Config):
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-                pass
+                QUIT = True
+                for creature in population:
+                    creature.health = 0
             
             elif event.type == pygame.MOUSEWHEEL:
                 CAMERA.zoom(-event.y)
@@ -153,10 +158,10 @@ def eval_genomes(_genomes: list, config: neat.Config):
             inputs, out = creature.tick(WORLD, CAMERA.delta, population)
 
             if creature.health <= 0: 
-                population[i].fitness = time.time() - time_start
+                genomes[i].fitness = time.time() - time_start
                 population.pop(i)
                 if len(population) == 0:
-                    break
+                    return
                 continue
 
             if i != creature_index:

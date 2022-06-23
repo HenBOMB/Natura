@@ -146,4 +146,6 @@ cython_debug/
 
 .idea/
 
+/saves
+
 *.txt

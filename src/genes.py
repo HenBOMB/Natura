@@ -8,7 +8,7 @@ class Genes():
     COLOR = "color"
     FOV = "fov"
 
-    def __init__(self, seed):
+    def __init__(self, seed: float):
         self.table = {}
         self.table[Genes.MAX_SEE_RANGE] = 5
         self.table[Genes.MAX_ENERGY] = 25
@@ -17,8 +17,8 @@ class Genes():
         self.table[Genes.FOV] = 45
         self.table[Genes.COLOR] = (100, 100, 255)
     
-    def get(self, key):
+    def get(self, key: str) -> float: 
         return self.table[key]
 
-    def set(self, key, value):
+    def set(self, key: str, value):
         self.table[key] = value

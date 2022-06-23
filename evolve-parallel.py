@@ -1,13 +1,13 @@
 import sys
 sys.path.insert(0, './src')
 sys.path.insert(1, './src/tools')
+sys.path.insert(1, './src/reporters')
 
 import neat
 import pickle
 import re
 import time
-import sys
-
+from keep_pc_awake import KeepPCAwake
 from genes import *
 from creature import *
 
@@ -48,7 +48,7 @@ def run(path, generations, save_interval):
     )
 
     cp = neat.Checkpointer(save_interval, None, "./checkpoints/neat-checkpoint-")
-    
+
     if path != None:
         pop = cp.restore_checkpoint(path)
     else:
@@ -57,6 +57,7 @@ def run(path, generations, save_interval):
     pop.add_reporter(cp)
     pop.add_reporter(neat.StdOutReporter(True))
     pop.add_reporter(neat.StatisticsReporter())
+    # pop.add_reporter(KeepPCAwake())
     
     # Blazing fast!
     pe = neat.ParallelEvaluator(4, eval_genome, pop)

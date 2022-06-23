@@ -1,7 +1,7 @@
 {
     "python.analysis.extraPaths": [
-        "./tools",
         "./src",
-        "./src/tools"
+        "./src/tools",
+        "./src/reporters"
     ]
 }

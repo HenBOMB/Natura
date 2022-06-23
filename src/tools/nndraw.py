@@ -1,4 +1,8 @@
+import array
 import pygame
+import neat
+
+from camera import Camera
 
 NODE_RADIUS     =   20
 NODE_SPACING    =   5
@@ -27,7 +31,7 @@ NODE_FONT = pygame.font.SysFont("comicsans", 9)
 
 class NN:
 
-    def __init__(self, config, genome, pos, SCREEN_HEIGHT):
+    def __init__(self, config: neat.Config, genome: neat.DefaultGenome, pos: tuple, SCREEN_HEIGHT: int):
         self.nodes = []
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
         self.genome = genome
@@ -108,21 +112,24 @@ class NN:
         # for i, node in enumerate(config.genome_config.input_keys):
         #     self.new_nodes.append([])
 
-    def update_inputs(self, input_names):
+    def update_inputs(self, input_names: array):
         for i, l in enumerate(input_names):
             self.nodes[i].label = l
     
-    def update_outputs(self, output_names):
+    def update_outputs(self, output_names: array):
         for i, l in enumerate(output_names):
             self.nodes[i+INPUT_NEURONS].label = l
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, (250, 244, 225), (0, 0, 3*(LAYER_SPACING*2+2*NODE_RADIUS) + NODE_RADIUS + self.offset_end, self.SCREEN_HEIGHT))
+    def draw(self, surface: pygame.Surface):
+        surf = pygame.Surface((self.nodes[INPUT_NEURONS].x + self.nodes[0].x, self.SCREEN_HEIGHT), pygame.SRCALPHA)
+        surf.fill((100, 100, 100, 100))
+        surface.blit(surf, (0, 0))
 
         for c in self.connections:
-            c.drawConnection(screen)
+            c.drawConnection(surface)
+        
         for node in self.nodes:
-            node.draw_node(screen)
+            node.draw_node(surface)
 
 class Node:
     def __init__(self, id, x, y, type, color, label = "", index=0):
@@ -135,14 +142,14 @@ class Node:
         self.index = index
         self.connection_count = 0
 
-    def draw_node(self, SCREEN):
+    def draw_node(self, surface: pygame.Surface):
+        pygame.draw.circle(surface, self.color[0], (self.x, self.y), NODE_RADIUS, 0, False, True, True, False)
+        pygame.draw.circle(surface, self.color[1], (self.x, self.y), NODE_RADIUS, 0, True, False, False, True)
 
-        pygame.draw.circle(SCREEN, self.color[0], (self.x,self.y), NODE_RADIUS, 0, False, True, True, False)
-        pygame.draw.circle(SCREEN, self.color[1], (self.x,self.y), NODE_RADIUS, 0, True, False, False, True)
         #draw labels
         if self.type != 1:
             text = NODE_FONT.render(self.label, 1, BLACK)
-            SCREEN.blit(text, (
+            surface.blit(text, (
                 # self.x + (self.type-1) * ((text.get_width() if not self.type else 0) + NODE_RADIUS + 5), 
                 self.x - text.get_width()/2, 
                 self.y - text.get_height()/2))
@@ -153,13 +160,13 @@ class Connection:
         self.output = output
         self.wt = wt
 
-    def drawConnection(self, SCREEN):
+    def drawConnection(self, surface: pygame.Surface):
         color = (100, 100, 100) if self.wt >= 0 else (50, 50, 50)
         width = int(abs(self.wt * CONN_WIDTH))
         if width == 0: width = 1
         
         pygame.draw.line(
-            SCREEN, 
+            surface,
             color,
             (self.input.x, self.input.y), 
             (self.output.x, self.output.y), 

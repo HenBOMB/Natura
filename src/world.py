@@ -1,4 +1,5 @@
 import random
+from camera import Camera
 
 from food import *
 
@@ -16,16 +17,9 @@ def meter_to_pixel(meter):
     return meter * 100
 
 class World():
-    def __init__(self, seed: float, SCREEN_WIDTH: int =WORLD_WIDTH, SCREEN_HEIGHT: int=WORLD_HEIGHT):
+    def __init__(self, seed: float):
         self.food = []
         self.seed = seed
-        self.click = (0, 0)
-        self.offset_x = SCREEN_WIDTH / 2
-        self.offset_y = SCREEN_HEIGHT / 2
-        self.click_offset_x = 0
-        self.click_offset_y = 0
-
-        #draw only
         self.image_food = None
 
     def tick(self):
@@ -38,20 +32,13 @@ class World():
             self.seed = random.randint(0, 1000000)
             self.spawn_food(1)
 
-    def draw(self, SCREEN, pygame):
-        if self.image_food == None:
-            self.image_food = pygame.image.load('./assets/food.png', 'food')
-
+    def draw(self, camera: Camera):
         for i, food in enumerate(self.food):
             if food.energy == 0:
                 self.food.pop(i)
                 continue
-            # pygame.draw.circle(SCREEN, food.color, (food.pos[0] + self.offset_x, food.pos[1] + self.offset_y), food.size)
-            s = food.size * 2.5
-            SCREEN.blit(
-                pygame.transform.scale(self.image_food, (s, s)), 
-                (food.pos[0] + self.offset_x - s/2, food.pos[1] + self.offset_y - s/2)
-            )
+
+            camera.draw_image(self.image_food, (food.pos[0] - food.size / 2, food.pos[1] - food.size / 2), food.size * 2.5)
 
     def spawn_food(self, count: int):
         for i in range(count):
@@ -66,12 +53,3 @@ class World():
     
     def set_food(self, food: Food):
         self.food.append(food)
-
-    def set_click(self, pos: tuple):
-        self.click = pos
-        self.click_offset_x = self.offset_x
-        self.click_offset_y = self.offset_y
-
-    def pan_camera(self, pos: tuple):
-        self.offset_x = self.click_offset_x + (pos[0] - self.click[0])
-        self.offset_y = self.click_offset_y + (pos[1] - self.click[1])

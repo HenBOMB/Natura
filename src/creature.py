@@ -1,4 +1,5 @@
 import math
+import neat
 
 from genes import *
 from tools import *
@@ -7,7 +8,7 @@ from world import *
 # energy to mass and vice versa convert value
 
 class Creature():
-    def __init__(self, genome, genes, network, start_x, start_y):
+    def __init__(self, genome: neat.DefaultGenome, genes: Genes, network: neat.nn.FeedForwardNetwork, start_x: int, start_y: int):
         self.genome = genome
         self.genes = genes
         self.network = network
@@ -28,7 +29,7 @@ class Creature():
         self.do_eat_food = False
         self.do_release_waste = False
     
-    def tick(self, world, delta):
+    def tick(self, world: World, delta: float):
         self.mass = energy_to_mass(self.genes.get(Genes.MAX_ENERGY)) + self.mass_waste
         self.weight = self.mass * GRAVITY
 
@@ -114,15 +115,15 @@ class Creature():
         # output = lambda i : out[i] > .5
 
         self.do_eat_food = out[4] > .5
-        self.do_release_waste = out[5] > .5
+        # self.do_release_waste = out[5] > .5
 
         self.speed = self.genes.get(Genes.MAX_SPEED) if out[0] > .5 else self.genes.get(Genes.MAX_SPEED) / 3 if out[1] > .5 else 0
 
-        if self.do_release_waste: 
-            self.speed = 0
+        # if self.do_release_waste: 
+        #     self.speed = 0
 
         # region testing
-        # testing using physics to move the creature
+        # testing: using physics to move the creature
 
         # REMEMBER THAT DELTA IS DISTANCE!
         # its like cut into 60 parts that completes a computation second? ish-
@@ -205,18 +206,20 @@ class Creature():
             if in_food_dist - self.size_px < food.size:
                 self.eat_food(food)
 
-        if self.do_release_waste: 
-            self.release_waste()
+        # if self.do_release_waste: 
+        #     self.release_waste(world)
 
         return (inputs, out)
 
-    def draw(self, SCREEN, world: World, pygame):
-        pos = (self.pos[0] + world.offset_x, self.pos[1] + world.offset_y)
-        pygame.draw.circle(SCREEN, self.genes.get(Genes.COLOR), pos, self.size_px)
-        rad = math.radians(self.fov)
-        pygame.draw.circle(SCREEN, (0,0,0), (pos[0] + math.cos(self.angle-rad) * self.size_px / 1.5, pos[1] + math.sin(self.angle-rad) * self.size_px / 1.5), self.size_px / 4)
-        pygame.draw.circle(SCREEN, (0,0,0), (pos[0] + math.cos(self.angle+rad) * self.size_px / 1.5, pos[1] + math.sin(self.angle+rad) * self.size_px / 1.5), self.size_px / 4)
-        # pygame.draw.circle(SCREEN, (0,0,0), pos, meter_to_pixel(self.genes.get(Genes.MAX_SEE_RANGE)), 5)
+    def draw(self, camera: Camera):
+        camera.draw_circle(self.genes.get(Genes.COLOR), self.pos, self.size_px)
+        rad = math.radians(self.fov/1.5)
+        camera.draw_circle((0,0,0), (
+                self.pos[0] + math.cos(self.angle-rad) * self.size_px, 
+                self.pos[1] + math.sin(self.angle-rad) * self.size_px), self.size_px / 4)
+        camera.draw_circle((0,0,0), (
+                self.pos[0] + math.cos(self.angle+rad) * self.size_px, 
+                self.pos[1] + math.sin(self.angle+rad) * self.size_px), self.size_px / 4)
 
     def eat_food(self, food: Food):
         # make a vault for the food, when full, it means it has to poop
@@ -224,13 +227,13 @@ class Creature():
         # like humans
         # its not like you can poop whenever, only when the vault is fool
         # aka intestines
-        if self.mass_waste >= self.max_waste:
-            # pooping takes time depending on the amount to release
-            return
+        # if self.mass_waste >= self.max_waste:
+        #     # pooping takes time depending on the amount to release
+        #     return
 
         #TODO: here 0.3 can be how well it compresses its shit lol
-        quality = 0.6
-        self.mass_waste += self.max_waste * quality
+        # quality = 0.6
+        # self.mass_waste += self.max_waste * quality
 
         self.gain_energy(food.eat(self.max_waste))
 
@@ -242,5 +245,6 @@ class Creature():
         self.energy -= energy
         self.energy = clamp(self.energy, 0, self.genes.get(Genes.MAX_ENERGY))
 
-    def release_waste(self):
-        self.mass_waste = 0
+    # def release_waste(self, world: World):
+    #     self.mass_waste = 0
+    #     world.add_poop(self.pos)

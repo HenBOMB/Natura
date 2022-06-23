@@ -1,4 +1,5 @@
 import sys
+from turtle import distance
 sys.path.insert(0, './src')
 sys.path.insert(1, './src/tools')
 
@@ -9,28 +10,46 @@ import re
 import pygame
 import neat
 import pickle
+import tools
 
 pygame.init()
 pygame.font.init()
 
+pygame.display.set_caption("Simbiol - Simulated Biological Life")
+
 from nndraw import NN
 from genes import *
 from creature import *
+from camera import *
 
-SCREEN_WIDTH = 800#1600
+SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
-SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-FONT = pygame.font.Font('freesansbold.ttf', 20)
-CLOCK = pygame.time.Clock()
+CAMERA = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 SEED = random.randint(0, 10000)
 FPS = 60
-
-WORLD = World(SEED, SCREEN_WIDTH, SCREEN_HEIGHT)
+WORLD = World(SEED)
+SHOW_NN = False
+SHOW_NN_CREATURE_I = 0
 
 dragging = False
 
-def display_genomes(GENOME, CONFIG, COUNT = 1):
-    global dragging
+WORLD.image_food = pygame.image.load('./assets/food.png', 'food')
+
+PROPERTIES_FONT = pygame.font.SysFont("comicsans", 15)
+
+def draw_properties(creature: Creature):
+    width, height = (200, 100)
+    surf = pygame.Surface((width, height), pygame.SRCALPHA)
+    surf.fill((100, 100, 100, 100))
+    CAMERA.screen.blit(surf, (SCREEN_WIDTH - width, 0))
+
+    text = PROPERTIES_FONT.render("uwu", True, (0,0,0))
+
+    CAMERA.screen.blit(text, (SCREEN_WIDTH - width, -7.5))
+
+def display_genomes(GENOME: neat.DefaultGenome, CONFIG: neat.Config, COUNT: int = 1):
+    global dragging, SHOW_NN_CREATURE_I, SHOW_NN
+
     creatures = []
     
     for _ in range(COUNT):
@@ -39,81 +58,97 @@ def display_genomes(GENOME, CONFIG, COUNT = 1):
 
     nndraw = NN(CONFIG, GENOME, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
     
-    delta = 1. / 60.
-
     while True:
-        if CLOCK.get_fps() != 0: delta = 1. / CLOCK.get_fps()
-            
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            
+            elif event.type == pygame.MOUSEWHEEL:
+                CAMERA.zoom(-event.y)
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 dragging = True
-                WORLD.set_click(pygame.mouse.get_pos())
+                CAMERA.set_pos(pygame.mouse.get_pos())
 
-            if event.type == pygame.MOUSEBUTTONUP:
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 dragging = False
+                creature: Creature
 
-            if event.type == pygame.MOUSEMOTION and dragging:
-                WORLD.pan_camera(pygame.mouse.get_pos())
+                for i, creature in enumerate(creatures):
+                    d = tools.dist(CAMERA.fix_pos(creature.pos), pygame.mouse.get_pos())
+                    if d < CAMERA.fix_scale(creature.size_px):
+                        SHOW_NN_CREATURE_I = i
+                        break
 
-        SCREEN.fill((0, 0, 0))
+            elif event.type == pygame.MOUSEMOTION and dragging:
+                if tools.dist(CAMERA.cam_pos, pygame.mouse.get_pos()) > 5:
+                    CAMERA.pan_camera(pygame.mouse.get_pos())
 
-        pygame.draw.rect(SCREEN, (200, 200, 200), (
-            -WORLD_WIDTH + WORLD.offset_x, 
-            -WORLD_HEIGHT + WORLD.offset_y, 
-            WORLD_WIDTH*2,  
-            WORLD_HEIGHT*2))
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_n:
+                    SHOW_NN = not SHOW_NN
 
-        pygame.draw.rect(SCREEN, (50, 50, 50), (
-            -WORLD_WIDTH + WORLD.offset_x-5, 
-            -WORLD_HEIGHT + WORLD.offset_y-5, 
-            WORLD_WIDTH*2+5,  
-            WORLD_HEIGHT*2+5), 5)
+            elif event.type == pygame.K_UP:
+                SHOW_NN_CREATURE_I += 1
+                if SHOW_NN_CREATURE_I == len(creatures): SHOW_NN_CREATURE_I = 0
+
+            elif event.type == pygame.K_DOWN:
+                SHOW_NN_CREATURE_I -= 1
+                if SHOW_NN_CREATURE_I < 0: SHOW_NN_CREATURE_I = len(creatures) - 1
+
+        CAMERA.clear_screen()
+
+        CAMERA.draw_rect((200, 200, 200), (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
+        CAMERA.draw_rect((50, 50, 50), (-WORLD_WIDTH-5, -WORLD_HEIGHT-5, WORLD_WIDTH*2+10, WORLD_HEIGHT*2+10), 5)
 
         WORLD.tick()
-        WORLD.draw(SCREEN, pygame)
+        WORLD.draw(CAMERA)
 
         if len(WORLD.food) == 0:
             WORLD.seed = random.randint(0, 10000)
             WORLD.spawn_food(50)
 
+        creature: Creature
         for i, creature in enumerate(creatures):
-            inputs, out = creature.tick(WORLD, delta)
+            inputs, out = creature.tick(WORLD, CAMERA.delta)
 
             if creature.health <= 0: continue
 
-            creature.draw(SCREEN, WORLD, pygame)
+            if i != SHOW_NN_CREATURE_I:
+                creature.draw(CAMERA)
+                continue
 
-            if i != 0: continue
-
+            col = creature.genes.get(Genes.COLOR)
             creature.genes.set(Genes.COLOR, (150, 150, 255))
+            creature.draw(CAMERA)
+            creature.genes.set(Genes.COLOR, col)
 
-            nndraw.update_inputs([
-                f"{inputs[0]}%",
-                f"{inputs[1]}%",
-                f"{inputs[2]}%m/s",
-                f"{inputs[3]}",
-                f"{round(math.degrees(inputs[4]))}deg",
-                f"{round(inputs[5])}px",
-                f"{inputs[6]}"
-            ])
+            if SHOW_NN:
+                nndraw.update_inputs([
+                    f"{inputs[0]}%",
+                    f"{inputs[1]}%",
+                    f"{inputs[2]}%m/s",
+                    f"{inputs[3]}",
+                    f"{round(math.degrees(inputs[4]))}deg",
+                    f"{round(inputs[5])}px",
+                    f"{inputs[6]}"
+                ])
 
-            nndraw.update_outputs([
-                f"{out[0]>.5}",
-                f"{out[1]>.5}",
-                f"{out[2]>.5}",
-                f"{out[3]>.5}",
-                f"{out[4]>.5}",
-                f"{out[5]>.5}"
-            ])
+                nndraw.update_outputs([
+                    f"{out[0]>.5}",
+                    f"{out[1]>.5}",
+                    f"{out[2]>.5}",
+                    f"{out[3]>.5}",
+                    f"{out[4]>.5}",
+                    f"{out[5]>.5}"
+                ])
 
-            nndraw.draw(SCREEN)
+                nndraw.draw(CAMERA.screen)
 
-        CLOCK.tick(FPS)
-        pygame.display.update()
+                draw_properties(creature)
+
+        CAMERA.tick()
 
 def run():
     def get_arg(name, default):
@@ -125,9 +160,8 @@ def run():
 
     path = get_arg("path", "best-genome")
     config = get_arg("config", "config")
-
-    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config)
     
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config)
     with open(path, 'rb') as f:
         display_genomes(pickle.load(f), config, int(get_arg("count", 1)))
 

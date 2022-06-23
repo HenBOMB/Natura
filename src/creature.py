@@ -4,11 +4,12 @@ import neat
 from genes import *
 from tools import *
 from world import *
+from population import Population
 
 # energy to mass and vice versa convert value
 
 class Creature():
-    def __init__(self, genome: neat.DefaultGenome, network: neat.nn.FeedForwardNetwork, start_pos: tuple, parent1: Genes, parent2: Genes):
+    def _it__(self, genome: neat.DefaultGenome, network: neat.nn.FeedForwardNetwork, start_pos: tuple, parent1: Genes, parent2: Genes = None):
         if parent1 and parent2:
             self.genes = parent1.crossover(parent2)
         else:
@@ -24,23 +25,52 @@ class Creature():
         self.GENE_COLOR         = self.genes.get(Genes.COLOR).value
         self.GENE_HUNGER        = self.genes.get(Genes.HUNGER_BIAS).value
         self.MAX_WASTE          = energy_to_mass(self.GENE_ENERGY / 3) # mass
-        self.GENOME             = genome
-        self.NETWORK            = network
 
+        self.genome             = genome
+        self.network            = network
         self.pos                = start_pos
-        self.speed              = 0 # m/s
         self.angle              = random.random() * 2 * math.pi # radians
-        self.mass               = 0 # mass
-        self.weight             = 0 # mass * GRAVITY
-
         self.energy             = self.genes.get(Genes.ENERGY).value
         self.health             = self.genes.get(Genes.HEALTH).value
-        self.mass_waste         = 0 # mass
         self.size_px            = energy_to_mass(self.GENE_ENERGY) * 8
+        self.speed              = 0 # m/s
+        self.mass               = 0 # mass
+        self.weight             = 0 # mass * GRAVITY
+        self.mass_waste         = 0 # mass
         self.do_eat_food        = False
         self.do_release_waste   = False
     
-    def tick(self, world: World, delta: float):
+    def get_closest(self, fwd, max_dist, array):
+        _dist = max_dist
+        _angle = 0
+        _count = 0
+        dex = 0
+        for i, item in enumerate(array):
+            angle = angle_vec(fwd, sub_vec(item.pos, self.pos))
+            if angle > self.GENE_FOV: continue
+
+            _count += 1
+
+            dist = pixel_to_meter(dist(item.pos, self.pos))
+            if dist >= _dist: continue
+
+            right = (math.cos(self.angle + math.pi / 2), math.sin(self.angle + math.pi / 2))
+            angle_right = angle_vec(right, sub_vec(item.pos, self.pos))
+            
+            if angle_right > 90: angle *= -1
+
+            _angle = math.radians(angle)
+            _dist = dist
+            dex = i
+
+        return (_dist, _angle, _count, dex)
+
+    # LEFT OFF:
+    # Was gonna implement offsprings
+    # also i added 3 inputs, creature stuff
+    # finish and test realtime-simulation.py
+    
+    def tick(self, world: World, delta: float, pop: Population = None, pop_index: int = None):
         self.mass = energy_to_mass(self.GENE_ENERGY) + self.mass_waste
         self.weight = self.mass * GRAVITY
 
@@ -52,42 +82,23 @@ class Creature():
             return ((), ())
 
         # energy spent per second
-        # print((self.genes.max_speed / 2 * self.mass) + (self.mass / 0.733), 'e/s')
+        # print((self.GENE_SPEED / 2 * self.mass) + (self.mass / 0.733), 'e/s')
 
         # how does metabolism affect digestion speed or energy consumption..?
 
         # print(len(self.genome.connections))
 
-        move_dir = (math.cos(self.angle), math.sin(self.angle))
+        fwd = (math.cos(self.angle), math.sin(self.angle))
 
-        # _in_creature_dist = meter_to_pixel(self.max_sight)
-        # _in_creature_angle = 0
-        # _in_creature_count = 0
+        _creature_dist, _creature_angle, _creature_count, _creature_index       = (self.GENE_SIGHT_RANGE, 0, 0, 0)
+        _food_dist, _food_angle, _food_count, _food_index                       = (self.GENE_SIGHT_RANGE, 0, 0, 0)
 
-        _in_food_dist = self.GENE_SIGHT_RANGE
-        _in_food_angle = 0
-        _in_food_count = 0
-        food_arr_index = 0
+        if pop != None:
+            _creature_dist, _creature_angle, _creature_count, _creature_index   = self.get_closest(fwd, _creature_dist, pop.population)
 
         if self.do_eat_food:
-            for i, food in enumerate(world.food):
-                angle = angle_vec(move_dir, sub_vec(food.pos, self.pos))
-                if angle > self.GENE_FOV: continue
-
-                _in_food_count += 1
-
-                _dist = pixel_to_meter(dist(food.pos, self.pos))
-                if _in_food_dist < _dist: continue
-
-                right = (math.cos(self.angle + math.pi / 2), math.sin(self.angle + math.pi / 2))
-                angle_right = angle_vec(right, sub_vec(food.pos, self.pos))
-                
-                if angle_right > 90: angle *= -1
-
-                _in_food_angle = math.radians(angle)
-                _in_food_dist = _dist
-                food_arr_index = i
-
+            _food_dist, _food_angle, _food_count, _food_index                   = self.get_closest(fwd, _food_dist, world.food)
+            
         # A observer class inherit from sense, returns info from external information
         # A sense base class goes in input and returns info from myself (creature)
         # These are hidden in the code, eg: food.pos, see, where did i get that.. not from myself ofc
@@ -98,27 +109,27 @@ class Creature():
         # gets put in sense input node
         # or a memory node, returns a val when requested OH, same as actual neuron
         # 0 - 100% value on how hungry the creature is if energy / max < self.GENE_HUNGER
-        _in_hungriness = self.energy / (self.GENE_ENERGY * self.GENE_HUNGER) if self.energy / self.GENE_ENERGY < self.GENE_HUNGER else 0
+        _hungriness = self.energy / (self.GENE_ENERGY * self.GENE_HUNGER) if self.energy / self.GENE_ENERGY < self.GENE_HUNGER else 0
 
         inputs = (
             # our hungriness %
-            round(_in_hungriness * 100),
+            round(_hungriness * 100),
             # our health  %
             percent(self.health, self.GENE_HEALTH),
             # our speed %
             percent(self.speed, self.GENE_SPEED),
             # angle to closest food
-            percent(math.degrees(_in_food_angle), self.GENE_FOV),
+            percent(math.degrees(_food_angle), self.GENE_FOV),
             # distance to closest food
-            percent(_in_food_dist, self.GENE_SIGHT_RANGE),
+            percent(_food_dist, self.GENE_SIGHT_RANGE),
             # food count in sight
-            _in_food_count,
+            _food_count,
             # angle to closest creature
-            # _in_creature_angle,
-            # # distance to closest creature
-            # _in_creature_distance,
-            # # creature count in sight
-            # _in_creature_count,
+            _creature_angle,
+            # distance to closest creature
+            _creature_dist,
+            # creature count in sight
+            _creature_count,
             # maturity
             # distance to closest creature seen
             # angle
@@ -134,7 +145,7 @@ class Creature():
         self.do_eat_food = out[4] > .5
         # self.do_release_waste = out[5] > .5
 
-        self.speed = self.max_speed if out[0] > .5 else self.max_speed / 3 if out[1] > .5 else 0
+        self.speed = self.GENE_SPEED if out[0] > .5 else self.GENE_SPEED / 3 if out[1] > .5 else 0
 
         # if self.do_release_waste: 
         #     self.speed = 0
@@ -219,8 +230,8 @@ class Creature():
             return (inputs, out)
 
         if self.do_eat_food:
-            food = world.food[food_arr_index]
-            if _in_food_dist - self.size_px < food.size:
+            food = world.food[_food_index]
+            if meter_to_pixel(_food_dist) - self.size_px < food.size:
                 self.eat_food(food)
 
         # if self.do_release_waste: 
@@ -228,9 +239,9 @@ class Creature():
 
         return (inputs, out)
 
-    def draw(self, camera):
-        camera.draw_circle(self.genes.get(Genes.COLOR), self.pos, self.size_px)
-        rad = math.radians(self.fov/1.5)
+    def draw(self, camera, highlight: bool):
+        camera.draw_circle(self.GENE_COLOR, self.pos, self.size_px)
+        rad = math.radians(self.GENE_FOV/1.5)
         camera.draw_circle((0,0,0), (
                 self.pos[0] + math.cos(self.angle-rad) * self.size_px, 
                 self.pos[1] + math.sin(self.angle-rad) * self.size_px), self.size_px / 4)
@@ -238,29 +249,32 @@ class Creature():
                 self.pos[0] + math.cos(self.angle+rad) * self.size_px, 
                 self.pos[1] + math.sin(self.angle+rad) * self.size_px), self.size_px / 4)
 
+        if highlight:
+            camera.draw_circle(self.GENE_COLOR, self.pos, self.size_px+2, 2)
+
     def eat_food(self, food: Food):
         # make a vault for the food, when full, it means it has to poop
         # a min max capacity, when the first fill (max1) + next fill reach global max, then poop inminent
         # like humans
         # its not like you can poop whenever, only when the vault is fool
         # aka intestines
-        # if self.mass_waste >= self.max_waste:
+        # if self.mass_waste >= self.MAX_WASTE:
         #     # pooping takes time depending on the amount to release
         #     return
 
         #TODO: here 0.3 can be how well it compresses its shit lol
         # quality = 0.6
-        # self.mass_waste += self.max_waste * quality
+        # self.mass_waste += self.MAX_WASTE * quality
 
-        self.gain_energy(food.eat(self.max_waste))
+        self.gain_energy(food.eat(self.MAX_WASTE))
 
     def gain_energy(self, energy: float):
         self.energy += energy
-        self.energy = clamp(self.energy, 0, self.max_energy)
+        self.energy = clamp(self.energy, 0, self.GENE_ENERGY)
 
     def drain_energy(self, energy: float):
         self.energy -= energy
-        self.energy = clamp(self.energy, 0, self.max_energy)
+        self.energy = clamp(self.energy, 0, self.GENE_ENERGY)
 
     # def release_waste(self, world: World):
     #     self.mass_waste = 0

@@ -59,5 +59,5 @@ class Camera():
         x, y = self.fix_pos((rect[0], rect[1]))
         pygame.draw.rect(self.screen, color, (x, y, self.fix_scale(rect[2]), self.fix_scale(rect[3])), width)
 
-    def draw_circle(self, color: tuple, pos: tuple, radius: float):
-            pygame.draw.circle(self.screen, color, self.fix_pos(pos), self.fix_scale(radius))
+    def draw_circle(self, color: tuple, pos: tuple, radius: float, width: int = 0):
+            pygame.draw.circle(self.screen, color, self.fix_pos(pos), self.fix_scale(radius), self.fix_scale(width) if width != 0 else 0)

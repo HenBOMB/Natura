@@ -20,7 +20,10 @@ class Food():
         self.mass = 0
         self.size = 0
         self.update()
-            
+    
+    # TODO: get rid of mass_to_energy and just use a random size
+    # have a sort of efficiency variable for each food, to convert mass to energy and vice versa
+
     def eat(self, mass: float):
         '''
         Take a bite out of the food, returns the energy consumed

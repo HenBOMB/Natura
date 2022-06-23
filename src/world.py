@@ -16,7 +16,7 @@ def meter_to_pixel(meter):
     return meter * 100
 
 class World():
-    def __init__(self, seed: float):
+    def __init__(self, seed: float = random.range() * 100000):
         self.food = []
         self.seed = seed
         self.image_food = None

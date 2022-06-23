@@ -1,5 +1,5 @@
 import random
-from tools import clamp, energy_to_mass, mass_to_energy
+from natura.util import energy_to_mass, mass_to_energy
 
 TYPE_PLANT = 0
 TYPE_MEAT = 1

@@ -58,7 +58,7 @@ def draw_properties(creature: Creature):
     draw_txt("Speed", 3)
     draw_v_txt(creature.GENE_SPEED, 3)
     draw_txt("View Range", 4)
-    draw_v_txt(creature.GENE_SIGHT_RANGE, 4)
+    draw_v_txt(creature.GENE_VIEW_RANGE, 4)
     draw_txt("Hunger", 5)
     draw_v_txt(creature.GENE_HUNGER, 5)
 

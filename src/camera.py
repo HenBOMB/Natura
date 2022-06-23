@@ -1,5 +1,6 @@
 import pygame
-from tools import clamp
+from math import ceil
+from natura.util import clamp
 
 class Camera():
     def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, fps: int = 60):
@@ -60,4 +61,4 @@ class Camera():
         pygame.draw.rect(self.screen, color, (x, y, self.fix_scale(rect[2]), self.fix_scale(rect[3])), width)
 
     def draw_circle(self, color: tuple, pos: tuple, radius: float, width: int = 0):
-            pygame.draw.circle(self.screen, color, self.fix_pos(pos), self.fix_scale(radius), self.fix_scale(width) if width != 0 else 0)
+            pygame.draw.circle(self.screen, color, self.fix_pos(pos), self.fix_scale(radius), int(ceil(self.fix_scale(width))) if width != 0 else 0)

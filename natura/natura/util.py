@@ -1,6 +1,15 @@
 import math
 import random
 
+# 1 pixel = 0.01 meters
+# 100 pixels = 1 meter
+
+def pixel_to_meter(pixels):
+    return pixels / 100
+
+def meter_to_pixel(meter):
+    return meter * 100
+
 def clamp(v: float, mi: float, mx: float):
     return max(mi, min(mx, v))
 

@@ -1,13 +1,23 @@
-import sys
-sys.path.insert(0, './src')
-sys.path.insert(1, './src/tools')
-sys.path.insert(1, './src/reporters')
-
+from enum import Enum
+import neat
 import pickle
-from tools import clamp
-from random import randint, random, gauss, uniform
+
+from random import gauss, random, uniform, randint
+from natura.util import clamp
 
 # https://neat-python.readthedocs.io/en/latest/_modules/attributes.html?highlight=mutate_value#
+
+class Genes(Enum):
+    ENERGY          = "a"
+    HEALTH          = "b"
+    SPEED           = "c"
+    VIEW_RANGE      = "d"
+    COLOR           = "e"
+    FOV             = "f"
+    HUNGER_BIAS     = "g"
+    MUTATE_POWER    = "aa"
+    MUTATE_RATE     = "ab"
+    REPLACE_RATE    = "ac"
 
 class Gene(object):
     TYPE_FLOAT  = 0
@@ -50,53 +60,48 @@ class Gene(object):
         elif r < replace_rate + mutate_rate:
             self.init_value()
 
-class Genes(object):
-    ENERGY          = "a"
-    HEALTH          = "b"
-    SPEED           = "c"
-    SIGHT_RANGE     = "d"
-    COLOR           = "e"
-    FOV             = "f"
-    HUNGER_BIAS     = "g"
-
-    MUTATE_POWER    = "aa"
-    MUTATE_RATE     = "ab"
-    REPLACE_RATE    = "ac"
-
-    def __init__(self, skip = False):
+class Genome(neat.DefaultGenome):
+    def __init__(self, key, skip = False):
+        super().__init__(key)
         self.genes = {}
         if skip: return
-        self.genes[Genes.SIGHT_RANGE]   = Gene(3, 6, type=Gene.TYPE_INT) # 5
+        self.genes[Genes.VIEW_RANGE]    = Gene(3, 6, type=Gene.TYPE_INT) # 5
         self.genes[Genes.ENERGY]        = Gene(15, 30, type=Gene.TYPE_INT) # 25 
         self.genes[Genes.HEALTH]        = Gene(10, 50, type=Gene.TYPE_INT) #100
         self.genes[Genes.SPEED]         = Gene(0.1, 2, 0) # 1
         self.genes[Genes.FOV]           = Gene(20, 50, 160) # 45
         self.genes[Genes.COLOR]         = Gene((20, 20, 20), (210, 210, 210), 0, 255, Gene.TYPE_TUPLE)
         self.genes[Genes.HUNGER_BIAS]   = Gene(.4, .8, .1, 1) # .5
-        
         self.genes[Genes.MUTATE_POWER]  = Gene(.1, .3, .1, 1) # .2
         self.genes[Genes.MUTATE_RATE]   = Gene(.1, .3, .1, 1) # .3
         self.genes[Genes.REPLACE_RATE]  = Gene(.1, .2, .1, 1) # .1
-
-    def get(self, key: str) -> Gene: 
+    
+    def get_gene(self, key: str) -> Gene: 
         return self.genes[key]
 
-    def set(self, key: str, gene: Gene):
+    def get_value(self, key: str): 
+        return self.genes[key].value
+
+    def set_gene(self, key: str, gene: Gene):
         self.genes[key] = gene
 
-    def mutate(self):
-        mutate_power = self.get(Genes.MUTATE_POWER).value
-        mutate_rate = self.get(Genes.MUTATE_RATE).value
-        replace_rate = self.get(Genes.REPLACE_RATE).value
+    def mutate(self, config):
+        super().mutate(config)
+
+        mutate_power    = self.get_gene(Genes.MUTATE_POWER).value
+        mutate_rate     = self.get_gene(Genes.MUTATE_RATE).value
+        replace_rate    = self.get_gene(Genes.REPLACE_RATE).value
+
         for key in self.genes.keys():
             self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
 
-    def crossover(self, genes2):
-        new_genes = Genes(True)
+    def configure_crossover(self, genome1, genome2, config):
+        super().configure_crossover(genome1, genome2, config)
         for key in self.genes.keys():
-            if random() > 0.5: new_genes.set(key, self.get(key))
-            else: new_genes.set(key, genes2.get(key))
-        return new_genes
+            if random() > 0.5:
+                self.genes[key] = genome1.get_gene(key)
+            else: 
+                self.genes[key] = genome2.get_gene(key)
 
     def save(self, path: str):
         with open(path, 'wb') as f:
@@ -107,3 +112,4 @@ class Genes(object):
         with open(path, 'rb') as f:
             self.genes = pickle.load(f)
             print(f"Loaded {len(self.genes)} genes from {path}")
+

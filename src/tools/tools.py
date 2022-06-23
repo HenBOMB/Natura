@@ -12,7 +12,13 @@ def lerp(a: float, b: float, t: float):
     
 def rand_negpos(seed: float):
     random.seed(seed)
-    return (random.random() - 0.5) * 2
+    return (random.random() - .5) * 2
+
+def percent(a, b):
+    return round((a / b) * 100)
+
+def rand_bool():
+    return random.random() > .5
 
 def normalize(v: tuple):
     d = norm(v)

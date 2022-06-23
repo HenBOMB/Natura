@@ -1,5 +1,4 @@
 import random
-from camera import Camera
 
 from food import *
 
@@ -32,7 +31,7 @@ class World():
             self.seed = random.randint(0, 1000000)
             self.spawn_food(1)
 
-    def draw(self, camera: Camera):
+    def draw(self, camera):
         for i, food in enumerate(self.food):
             if food.energy == 0:
                 self.food.pop(i)

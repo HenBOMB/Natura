@@ -8,29 +8,40 @@ from world import *
 # energy to mass and vice versa convert value
 
 class Creature():
-    def __init__(self, genome: neat.DefaultGenome, genes: Genes, network: neat.nn.FeedForwardNetwork, start_x: int, start_y: int):
-        self.genome = genome
-        self.genes = genes
-        self.network = network
-        self.pos = (start_x, start_y)
-        self.speed = 0 # m/s
-        self.angle = random.random() * 2 * math.pi # radians
-        self.fov = genes.get(Genes.FOV) # deg
-        self.energy = genes.get(Genes.MAX_ENERGY)
-        self.health = genes.get(Genes.MAX_HEALTH)
-        self.mass = 0 # mass
-        self.weight = 0 # mass * GRAVITY
+    def __init__(self, genome: neat.DefaultGenome, network: neat.nn.FeedForwardNetwork, start_pos: tuple, parent1: Genes, parent2: Genes):
+        if parent1 and parent2:
+            self.genes = parent1.crossover(parent2)
+        else:
+            self.genes = parent1
+        
+        # self.genes.mutate()
 
-        self.max_waste = energy_to_mass(genes.get(Genes.MAX_ENERGY) / 3) # mass
-        self.mass_waste = 0 # mass
+        self.GENE_FOV           = self.genes.get(Genes.FOV).value
+        self.GENE_ENERGY        = self.genes.get(Genes.ENERGY).value
+        self.GENE_HEALTH        = self.genes.get(Genes.HEALTH).value
+        self.GENE_SPEED         = self.genes.get(Genes.SPEED).value
+        self.GENE_SIGHT_RANGE   = self.genes.get(Genes.SIGHT_RANGE).value
+        self.GENE_COLOR         = self.genes.get(Genes.COLOR).value
+        self.GENE_HUNGER        = self.genes.get(Genes.HUNGER_BIAS).value
+        self.MAX_WASTE          = energy_to_mass(self.GENE_ENERGY / 3) # mass
+        self.GENOME             = genome
+        self.NETWORK            = network
 
-        self.size_px = energy_to_mass(self.genes.get(Genes.MAX_ENERGY)) * 8
+        self.pos                = start_pos
+        self.speed              = 0 # m/s
+        self.angle              = random.random() * 2 * math.pi # radians
+        self.mass               = 0 # mass
+        self.weight             = 0 # mass * GRAVITY
 
-        self.do_eat_food = False
-        self.do_release_waste = False
+        self.energy             = self.genes.get(Genes.ENERGY).value
+        self.health             = self.genes.get(Genes.HEALTH).value
+        self.mass_waste         = 0 # mass
+        self.size_px            = energy_to_mass(self.GENE_ENERGY) * 8
+        self.do_eat_food        = False
+        self.do_release_waste   = False
     
     def tick(self, world: World, delta: float):
-        self.mass = energy_to_mass(self.genes.get(Genes.MAX_ENERGY)) + self.mass_waste
+        self.mass = energy_to_mass(self.GENE_ENERGY) + self.mass_waste
         self.weight = self.mass * GRAVITY
 
         # maybe if the creature runs out of energy it can transform health -> energy
@@ -49,28 +60,32 @@ class Creature():
 
         move_dir = (math.cos(self.angle), math.sin(self.angle))
 
-        in_food_dist = meter_to_pixel(self.genes.get(Genes.MAX_SEE_RANGE))
-        in_food_angle = 0
-        food_arr_index = 0
-        food_count_in_sight = 0
+        # _in_creature_dist = meter_to_pixel(self.max_sight)
+        # _in_creature_angle = 0
+        # _in_creature_count = 0
 
-        if self.do_eat_food:        
+        _in_food_dist = self.GENE_SIGHT_RANGE
+        _in_food_angle = 0
+        _in_food_count = 0
+        food_arr_index = 0
+
+        if self.do_eat_food:
             for i, food in enumerate(world.food):
                 angle = angle_vec(move_dir, sub_vec(food.pos, self.pos))
-                if angle > self.fov: continue
+                if angle > self.GENE_FOV: continue
 
-                food_count_in_sight += 1
+                _in_food_count += 1
 
-                _dist = dist(food.pos, self.pos)
-                if in_food_dist < _dist: continue
+                _dist = pixel_to_meter(dist(food.pos, self.pos))
+                if _in_food_dist < _dist: continue
 
                 right = (math.cos(self.angle + math.pi / 2), math.sin(self.angle + math.pi / 2))
                 angle_right = angle_vec(right, sub_vec(food.pos, self.pos))
                 
                 if angle_right > 90: angle *= -1
 
-                in_food_angle = math.radians(angle)
-                in_food_dist = _dist
+                _in_food_angle = math.radians(angle)
+                _in_food_dist = _dist
                 food_arr_index = i
 
         # A observer class inherit from sense, returns info from external information
@@ -82,26 +97,28 @@ class Creature():
         # returns a name and value to change
         # gets put in sense input node
         # or a memory node, returns a val when requested OH, same as actual neuron
-        bias = .5 # TODO: This could be a mutable factor
-        # 0 - 100% value on how hungry the creature is if energy / max < bias
-        in_hungriness = self.energy / (self.genes.get(Genes.MAX_ENERGY) * bias) if self.energy / self.genes.get(Genes.MAX_ENERGY) < bias else 0
-        
-        # note, in distance is currently pixels, not meters
+        # 0 - 100% value on how hungry the creature is if energy / max < self.GENE_HUNGER
+        _in_hungriness = self.energy / (self.GENE_ENERGY * self.GENE_HUNGER) if self.energy / self.GENE_ENERGY < self.GENE_HUNGER else 0
+
         inputs = (
-            # hungriness %
-            round(in_hungriness * 100),
-            # health  %
-            round((self.health / self.genes.get(Genes.MAX_HEALTH)) * 100),
-            # speed %
-            round((self.speed / self.genes.get(Genes.MAX_SPEED)) * 100),
-            # flush waste?
-            self.mass_waste >= self.max_waste,
-            # angle to food
-            in_food_angle,
-            # distance to food
-            in_food_dist,
+            # our hungriness %
+            round(_in_hungriness * 100),
+            # our health  %
+            percent(self.health, self.GENE_HEALTH),
+            # our speed %
+            percent(self.speed, self.GENE_SPEED),
+            # angle to closest food
+            percent(math.degrees(_in_food_angle), self.GENE_FOV),
+            # distance to closest food
+            percent(_in_food_dist, self.GENE_SIGHT_RANGE),
             # food count in sight
-            food_count_in_sight
+            _in_food_count,
+            # angle to closest creature
+            # _in_creature_angle,
+            # # distance to closest creature
+            # _in_creature_distance,
+            # # creature count in sight
+            # _in_creature_count,
             # maturity
             # distance to closest creature seen
             # angle
@@ -117,7 +134,7 @@ class Creature():
         self.do_eat_food = out[4] > .5
         # self.do_release_waste = out[5] > .5
 
-        self.speed = self.genes.get(Genes.MAX_SPEED) if out[0] > .5 else self.genes.get(Genes.MAX_SPEED) / 3 if out[1] > .5 else 0
+        self.speed = self.max_speed if out[0] > .5 else self.max_speed / 3 if out[1] > .5 else 0
 
         # if self.do_release_waste: 
         #     self.speed = 0
@@ -203,7 +220,7 @@ class Creature():
 
         if self.do_eat_food:
             food = world.food[food_arr_index]
-            if in_food_dist - self.size_px < food.size:
+            if _in_food_dist - self.size_px < food.size:
                 self.eat_food(food)
 
         # if self.do_release_waste: 
@@ -211,7 +228,7 @@ class Creature():
 
         return (inputs, out)
 
-    def draw(self, camera: Camera):
+    def draw(self, camera):
         camera.draw_circle(self.genes.get(Genes.COLOR), self.pos, self.size_px)
         rad = math.radians(self.fov/1.5)
         camera.draw_circle((0,0,0), (
@@ -239,11 +256,11 @@ class Creature():
 
     def gain_energy(self, energy: float):
         self.energy += energy
-        self.energy = clamp(self.energy, 0, self.genes.get(Genes.MAX_ENERGY))
+        self.energy = clamp(self.energy, 0, self.max_energy)
 
     def drain_energy(self, energy: float):
         self.energy -= energy
-        self.energy = clamp(self.energy, 0, self.genes.get(Genes.MAX_ENERGY))
+        self.energy = clamp(self.energy, 0, self.max_energy)
 
     # def release_waste(self, world: World):
     #     self.mass_waste = 0

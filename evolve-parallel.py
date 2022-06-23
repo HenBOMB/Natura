@@ -7,12 +7,12 @@ import neat
 import pickle
 import re
 import time
-from keep_pc_awake import KeepPCAwake
 from genes import *
 from creature import *
+from better_checkpointer import BetterCheckpointer
 
 def eval_genome(genome, config, generation):
-    creature = Creature(genome, Genes(87374), neat.nn.FeedForwardNetwork.create(genome, config), WORLD_WIDTH/2, WORLD_HEIGHT/2)
+    creature = Creature(genome, neat.nn.FeedForwardNetwork.create(genome, config), (WORLD_WIDTH/2, WORLD_HEIGHT/2), Genes(87374))
     world = World(generation)
     world.spawn_food(100)
 
@@ -47,7 +47,7 @@ def run(path, generations, save_interval):
         "./config"
     )
 
-    cp = neat.Checkpointer(save_interval, None, "./checkpoints/neat-checkpoint-")
+    cp = BetterCheckpointer(save_interval, None, "./neat-data/checkpoint-", "./neat-data/genome-")
 
     if path != None:
         pop = cp.restore_checkpoint(path)
@@ -67,10 +67,10 @@ def run(path, generations, save_interval):
 
     winner = pop.run(pe.evaluate, generations + 1)
 
-    with open('best-genome', 'wb') as f:
+    with open('./latest-genome', 'wb') as f:
         pickle.dump(winner, f)
 
-    print('\nBest genome:\n{!s}'.format(winner))
+# python .\evolve-parallel.py --gen 800 --int 10 --cp .\neat-data\checkpoint-299
 
 if __name__ == '__main__':
     def get_arg(name, default):
@@ -81,7 +81,7 @@ if __name__ == '__main__':
         return default
 
     run(
-        get_arg("path", None), 
+        get_arg("cp", None), 
         int(get_arg("gen", 100)), 
-        int(get_arg("interval", int(get_arg("gen", 100)) // 4))
+        int(get_arg("int", int(get_arg("gen", 100)) // 4))
     )

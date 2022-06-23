@@ -7,8 +7,6 @@ from camera import Camera
 NODE_RADIUS     =   20
 NODE_SPACING    =   5
 LAYER_SPACING   =   15
-INPUT_NEURONS   =   7
-OUTPUT_NEURONS  =   6
 CONN_WIDTH      =   1
 
 WHITE           =   (255, 255, 255)
@@ -31,18 +29,20 @@ NODE_FONT = pygame.font.SysFont("comicsans", 9)
 
 class NN:
 
-    def __init__(self, config: neat.Config, genome: neat.DefaultGenome, pos: tuple, SCREEN_HEIGHT: int):
+    def __init__(self, config, genome: neat.DefaultGenome, pos: tuple, SCREEN_HEIGHT: int):
+        self.input_count = len(config.genome_config.input_keys)
+        self.output_count = len(config.genome_config.output_keys)
         self.nodes = []
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
         self.genome = genome
         self.pos = (int(pos[0]+NODE_RADIUS), int(pos[1]))
-        input_names = range(INPUT_NEURONS)
-        output_names = range(OUTPUT_NEURONS)
+        input_names = range(self.input_count)
+        output_names = range(self.output_count)
         middle_nodes = [n for n in genome.nodes.keys()]
         nodeIdList = []
 
         #nodes
-        h = (INPUT_NEURONS-1)*(NODE_RADIUS*2 + NODE_SPACING)
+        h = (self.input_count-1)*(NODE_RADIUS*2 + NODE_SPACING)
 
         for i, input in enumerate(config.genome_config.input_keys):
             n = Node(
@@ -56,10 +56,10 @@ class NN:
             self.nodes.append(n)
             nodeIdList.append(input)
 
-        h = (OUTPUT_NEURONS-1)*(NODE_RADIUS*2 + NODE_SPACING)
+        h = (self.output_count-1)*(NODE_RADIUS*2 + NODE_SPACING)
         for i,out in enumerate(config.genome_config.output_keys):
             n = Node(
-                out+INPUT_NEURONS, 
+                out+self.input_count, 
                 self.pos[0] + 2*(LAYER_SPACING*1.5+2*NODE_RADIUS), 
                 self.pos[1]+int(-h/2 + i*(NODE_RADIUS*2 + NODE_SPACING)), 
                 2, 
@@ -118,10 +118,10 @@ class NN:
     
     def update_outputs(self, output_names: array):
         for i, l in enumerate(output_names):
-            self.nodes[i+INPUT_NEURONS].label = l
+            self.nodes[i+self.input_count].label = l
 
     def draw(self, surface: pygame.Surface):
-        surf = pygame.Surface((self.nodes[INPUT_NEURONS].x + self.nodes[0].x, self.SCREEN_HEIGHT), pygame.SRCALPHA)
+        surf = pygame.Surface((self.nodes[self.input_count].x + self.nodes[0].x, self.SCREEN_HEIGHT), pygame.SRCALPHA)
         surf.fill((100, 100, 100, 100))
         surface.blit(surf, (0, 0))
 

@@ -53,7 +53,7 @@ def display_genomes(GENOME: neat.DefaultGenome, CONFIG: neat.Config, COUNT: int 
     creatures = []
     
     for _ in range(COUNT):
-        c = Creature(GENOME, Genes(random.randint(0, 10000)), neat.nn.FeedForwardNetwork.create(GENOME, CONFIG), rand_negpos(random.random())*500, rand_negpos(random.random())*500)
+        c = Creature(GENOME, neat.nn.FeedForwardNetwork.create(GENOME, CONFIG), (rand_negpos(random.random())*500, rand_negpos(random.random())*500), Genes())
         creatures.append(c)
 
     nndraw = NN(CONFIG, GENOME, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
@@ -99,7 +99,7 @@ def display_genomes(GENOME: neat.DefaultGenome, CONFIG: neat.Config, COUNT: int 
 
         CAMERA.clear_screen()
 
-        CAMERA.draw_rect((200, 200, 200), (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
+        CAMERA.draw_rect((0, 0, 16), (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
         CAMERA.draw_rect((50, 50, 50), (-WORLD_WIDTH-5, -WORLD_HEIGHT-5, WORLD_WIDTH*2+10, WORLD_HEIGHT*2+10), 5)
 
         WORLD.tick()
@@ -128,11 +128,10 @@ def display_genomes(GENOME: neat.DefaultGenome, CONFIG: neat.Config, COUNT: int 
                 nndraw.update_inputs([
                     f"{inputs[0]}%",
                     f"{inputs[1]}%",
-                    f"{inputs[2]}%m/s",
-                    f"{inputs[3]}",
-                    f"{round(math.degrees(inputs[4]))}deg",
-                    f"{round(inputs[5])}px",
-                    f"{inputs[6]}"
+                    f"{inputs[2]}%",
+                    f"{inputs[3]}%",
+                    f"{inputs[4]}%",
+                    f"{inputs[5]}"
                 ])
 
                 nndraw.update_outputs([
@@ -158,11 +157,12 @@ def run():
                 return sys.argv[i+1]
         return default
 
-    path = get_arg("path", "best-genome")
+    path = get_arg("genome", "./latest-genome")
     config = get_arg("config", "config")
     
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config)
     with open(path, 'rb') as f:
-        display_genomes(pickle.load(f), config, int(get_arg("count", 1)))
+        d = pickle.load(f)
+        display_genomes(d, config, int(get_arg("count", 1)))
 
 run()

@@ -49,8 +49,8 @@ class Camera():
     def fix_scale(self, scale: float):
         return scale * (2-self.zoom_scale)
 
-    def clear_screen(self):
-        self.screen.fill((0, 0, 0))
+    def clear_screen(self, color: tuple = (0, 0, 0)):
+        self.screen.fill(color)
 
     def draw_image(self, image: pygame.Surface, pos: tuple, scale: float = None, color_overlay: tuple = None):
         if scale:

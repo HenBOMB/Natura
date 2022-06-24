@@ -1,11 +1,19 @@
 if __name__ != '__main__':
     raise ImportError(f"Cannot import module '{__file__}'")
 
+import argutil
 import sys
+
+if argutil.has_arg("help"):
+    print("Load the simulation from a checkpoint")
+    print("--cp [path]")
+    print("Maximum number of generations between save intervals")
+    print("--int [int]")
+    sys.exit()
+
 import neat
 import pygame
 import pickle
-import re
 
 pygame.init()
 pygame.font.init()
@@ -23,7 +31,7 @@ WORLD_WIDTH         = 1500
 WORLD_HEIGHT        = 1500
 FPS                 = 60
 
-TEXT_FONT     = pygame.font.SysFont("comicsans", 15)
+TEXT_FONT           = pygame.font.SysFont("comicsans", 15)
 WORLD               = World(WORLD_WIDTH, WORLD_HEIGHT)
 CAMERA              = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
@@ -264,16 +272,9 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
 print("****** Running Natura ******")
 
-def get_arg(name, default):
-    for i in range(1, len(sys.argv)-1):
-        m = re.findall("(?<=--)\w+", sys.argv[i])
-        if len(m) == 1 and m[0] == name:
-            return sys.argv[i+1]
-    return default
+cp = neat.Checkpointer(int(argutil.get_arg("int", 50)), None, './saves/gen-')
 
-cp = neat.Checkpointer(int(get_arg("int", 50)), None, './saves/gen-')
-
-path = get_arg("cp", None)
+path = argutil.get_arg("cp", None)
 
 if path != None:
     pop = cp.restore_checkpoint(path)
@@ -286,6 +287,8 @@ else:
 
 pop.add_reporter(cp)
 pop.add_reporter(neat.StdOutReporter(True))
+
+GENERATION = pop.generation
 
 best = pop.run(eval_genomes)
 

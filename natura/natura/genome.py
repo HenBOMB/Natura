@@ -2,10 +2,16 @@ from enum import Enum
 import neat
 import pickle
 
-from random import gauss, random, uniform, randint
+from random import gauss, random, uniform, randint, choice, random
 from natura.util import clamp
+from neat.six_util import iterkeys
+from neat.graphs import creates_cycle
 
 # https://neat-python.readthedocs.io/en/latest/_modules/attributes.html?highlight=mutate_value#
+
+# basically all craeture inputs and food color
+restricted_inputs = [-4, -5, -6, -7, -8, -9, -12, -13, -14]
+allowed_inputs = [-1, -2, -3, -10, -11, -15]
 
 class Genes(Enum):
     ENERGY          = "a"
@@ -75,15 +81,14 @@ class Genome(neat.DefaultGenome):
         self.genes[Genes.MUTATE_POWER]  = Gene(.1, .3, .1, 1) # .2
         self.genes[Genes.MUTATE_RATE]   = Gene(.1, .3, .1, 1) # .3
         self.genes[Genes.REPLACE_RATE]  = Gene(.1, .2, .1, 1) # .1
-    
-    def get_gene(self, key: str) -> Gene: 
-        return self.genes[key]
 
-    def get_value(self, key: str): 
-        return self.genes[key].value
-
-    def set_gene(self, key: str, gene: Gene):
-        self.genes[key] = gene
+    def configure_crossover(self, genome1, genome2, config):
+        super().configure_crossover(genome1, genome2, config)
+        for key in self.genes.keys():
+            if random() > 0.5:
+                self.genes[key] = genome1.genes[key]
+            else: 
+                self.genes[key] = genome2.genes[key]
 
     def mutate(self, config):
         super().mutate(config)
@@ -95,13 +100,30 @@ class Genome(neat.DefaultGenome):
         for key in self.genes.keys():
             self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
 
-    def configure_crossover(self, genome1, genome2, config):
-        super().configure_crossover(genome1, genome2, config)
-        for key in self.genes.keys():
-            if random() > 0.5:
-                self.genes[key] = genome1.get_gene(key)
-            else: 
-                self.genes[key] = genome2.get_gene(key)
+    def mutate_add_connection(self, config):
+        possible_outputs = list(iterkeys(self.nodes))
+        out_node = choice(possible_outputs)
+
+        possible_inputs = possible_outputs + allowed_inputs#config.input_keys
+        in_node = choice(possible_inputs)
+
+        key = (in_node, out_node)
+        if key in self.connections:
+            if config.check_structural_mutation_surer():
+                self.connections[key].enabled = True
+            return
+
+        if in_node in config.output_keys and out_node in config.output_keys:
+            return
+
+        if config.feed_forward and creates_cycle(list(iterkeys(self.connections)), key):
+            return
+
+        cg = self.create_connection(config, in_node, out_node)
+        self.connections[cg.key] = cg
+
+    def get_value(self, key: str): 
+        return self.genes[key].value
 
     def save(self, path: str):
         with open(path, 'wb') as f:

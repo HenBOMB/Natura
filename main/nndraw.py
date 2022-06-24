@@ -25,7 +25,9 @@ HIDDEN_COLOR_2 = (80, 160, 235)
 HIDDEN_COLOR_3 = (200, 60, 60)
 HIDDEN_COLOR_4 = (135, 40, 40)
 
-NODE_FONT = pygame.font.SysFont("comicsans", 9)
+NODE_FONT = pygame.font.SysFont("comicsans", 12)
+
+from natura.genome import allowed_inputs
 
 class NN:
 
@@ -132,27 +134,34 @@ class NN:
             node.draw_node(surface)
 
 class Node:
-    def __init__(self, id, x, y, type, color, label = "", index=0):
+    def __init__(self, id, x, y, type, color, node_label = "", descriptor_label = ""):
         self.id = id
         self.x = x
         self.y = y
         self.type = type
         self.color = color
-        self.label = label
-        self.index = index
+        self.label = node_label
+        self.label2 = descriptor_label
         self.connection_count = 0
 
     def draw_node(self, surface: pygame.Surface):
+        if self.type == 0 and self.id not in allowed_inputs: return
         pygame.draw.circle(surface, self.color[0], (self.x, self.y), NODE_RADIUS, 0, False, True, True, False)
         pygame.draw.circle(surface, self.color[1], (self.x, self.y), NODE_RADIUS, 0, True, False, False, True)
 
-        #draw labels
-        if self.type != 1:
-            text = NODE_FONT.render(self.label, 1, BLACK)
+        if self.label != "":
+            text = NODE_FONT.render(str(self.label), 1, BLACK)
             surface.blit(text, (
-                # self.x + (self.type-1) * ((text.get_width() if not self.type else 0) + NODE_RADIUS + 5), 
                 self.x - text.get_width()/2, 
                 self.y - text.get_height()/2))
+
+        if self.label2 != "":
+            text = NODE_FONT.render(str(self.label2), 1, BLACK)
+            x = (-text.get_width() - NODE_RADIUS - 5) if self.type == 0 else NODE_RADIUS + 5
+            surface.blit(text, (
+                self.x + x,  
+                self.y - text.get_height()/2))
+
 
 class Connection:
     def __init__(self, input, output, wt):

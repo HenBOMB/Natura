@@ -6,14 +6,13 @@ import sys
 import neat
 import pygame
 import pickle
-import time
+import natura
 
 pygame.init()
 pygame.font.init()
 pygame.display.set_caption("Natura - Life Evolution")
 
 from natura import Creature, World, util, Genome
-from neat.reporting import ReporterSet
 from nndraw import NN
 from camera import Camera
 from random import randint, uniform, random
@@ -109,13 +108,11 @@ def eval_genomes(_genomes: list, config: neat.Config):
     WORLD.spawn_food(250)
 
     population  = []
-    genomes     = []
     tick_count  = 0
     dragging    = False
 
     for genome_id, genome in _genomes:
         genome.fitness = 0
-        genomes.append(None)
         population.append(Creature(genome, config, (uniform(-WORLD_WIDTH, WORLD_WIDTH), uniform(-WORLD_HEIGHT, WORLD_HEIGHT))))
 
     pop_count = len(population)
@@ -134,7 +131,10 @@ def eval_genomes(_genomes: list, config: neat.Config):
                 QUIT = True
                 for creature in population:
                     creature.health = 0
-            
+
+            elif event.type == pygame.WINDOWMINIMIZED:
+                print("WARNING! Simulation Paused due to pygame enabled and window minimized")
+
             elif event.type == pygame.MOUSEWHEEL:
                 CAMERA.zoom(-event.y)
 
@@ -187,8 +187,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
             if creature.health <= 0: 
                 # this is the issue, all the fitnesses are getting moved somewhere else..?
-                genomes[i] = population[i]
-                genomes[i].fitness = tick_count / 100.
+                creature.genome.fitness = tick_count / 100.
                 population.pop(i)
                 if len(population) == 0: return
                 continue
@@ -244,11 +243,11 @@ print("****** Running Natura ******")
 cp = neat.Checkpointer(10, None, './saves/gen-')
 
 pop = neat.Population(neat.Config(
-    neat.DefaultGenome, neat.DefaultReproduction,
+    Genome, neat.DefaultReproduction,
     neat.DefaultSpeciesSet, neat.DefaultStagnation,
     "./neat-config"
 ))
-# pop = cp.restore_checkpoint('./saves/gen-489')
+# pop = cp.restore_checkpoint('./saves/gen-149')
 
 pop.add_reporter(cp)
 pop.add_reporter(neat.StdOutReporter(True))

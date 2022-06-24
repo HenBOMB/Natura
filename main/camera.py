@@ -23,7 +23,7 @@ class Camera():
     
     def pan_camera(self, pos: tuple):
         v = clamp(self.zoom_scale, .4, 2)
-        v = v if v < 1 else lerp(2, 7, (v-.9))
+        # v = v if v < 1 else lerp(2, 7, (v-.9))
         self.offset_x = (self.click_offset_x + (pos[0] - self.cam_pos[0]) * v)
         self.offset_y = (self.click_offset_y + (pos[1] - self.cam_pos[1]) * v)
 

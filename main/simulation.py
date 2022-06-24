@@ -1,12 +1,11 @@
 if __name__ != '__main__':
     raise ImportError(f"Cannot import module '{__file__}'")
 
-from fileinput import filename
 import sys
 import neat
 import pygame
 import pickle
-import natura
+import re
 
 pygame.init()
 pygame.font.init()
@@ -109,6 +108,9 @@ def draw_static():
     draw_text(f"Press 'F' to resume viewing the realtime simulation", (0, 80))
     pygame.display.update()
 
+# could implement parallelism into this to speed it up, obviously not drawing anything, but like before!
+# https://github.com/HenBOMB/Natura/commit/e10530add790470874891472f48d0c5bee916e23#diff-852f425cb274d4895ce21fa82f7075101cc8e8bcd94d000838c57fc5241afa5a
+
 def eval_genomes(_genomes: list, config: neat.Config):
     global DRAW_NETWORK, DRAW_STATS, QUIT, ONLY_SIMULATE, GENERATION, MAX_FITNESS
     MAX_FITNESS = 0
@@ -130,7 +132,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
         genome.fitness = 0
         population.append(Creature(genome, config, (uniform(-WORLD_WIDTH, WORLD_WIDTH), uniform(-WORLD_HEIGHT, WORLD_HEIGHT))))
 
-    creature_index = randint(0, len(population)-1)
+    creature_index = 0
 
     if ONLY_SIMULATE:
         draw_static()
@@ -139,7 +141,6 @@ def eval_genomes(_genomes: list, config: neat.Config):
     # so delta = 0.1 should be 1 meter since 1 pixel = 10 meters
     # or, if that is wrong: delta * m/s = meters sinde t value cancels out
     while True:
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 QUIT = True
@@ -179,8 +180,8 @@ def eval_genomes(_genomes: list, config: neat.Config):
                     ONLY_SIMULATE = not ONLY_SIMULATE
                     draw_static()
                 elif event.key == pygame.K_f:
-                    if len(population) != 0:
-                        CAMERA.set_global_pos(population[creature_index].pos)
+                    try: CAMERA.set_global_pos(population[creature_index].pos)
+                    except: pass
 
             elif event.type == pygame.K_UP:
                 creature_index += 1
@@ -202,8 +203,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
             delta = 0.03 if ONLY_SIMULATE else CAMERA.delta
             inputs, out = creature.tick(WORLD, delta, population)
 
-            if creature.health <= 0: 
-                # this is the issue, all the fitnesses are getting moved somewhere else..?
+            if creature.health <= 0:
                 creature.genome.fitness = tick_count / 100.
                 population.pop(i)
                 if creature.genome.fitness > MAX_FITNESS:
@@ -212,6 +212,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
                     if len(MAX_FITNESS_ARR) == 5: MAX_FITNESS_ARR.pop(0)
                 
                 if len(population) == 0: return
+                if creature_index == i: creature_index = randint(0, len(population)-1)
                 continue
 
             if ONLY_SIMULATE: continue
@@ -263,14 +264,25 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
 print("****** Running Natura ******")
 
-cp = neat.Checkpointer(10, None, './saves/gen-')
+def get_arg(name, default):
+    for i in range(1, len(sys.argv)-1):
+        m = re.findall("(?<=--)\w+", sys.argv[i])
+        if len(m) == 1 and m[0] == name:
+            return sys.argv[i+1]
+    return default
 
-# pop = neat.Population(neat.Config(
-#     Genome, neat.DefaultReproduction,
-#     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-#     "./neat-config"
-# ))
-pop = cp.restore_checkpoint('./saves/gen-289')
+cp = neat.Checkpointer(int(get_arg("int", 50)), None, './saves/gen-')
+
+path = get_arg("cp", None)
+
+if path != None:
+    pop = cp.restore_checkpoint(path)
+else:
+    pop = neat.Population(neat.Config(
+        Genome, neat.DefaultReproduction,
+        neat.DefaultSpeciesSet, neat.DefaultStagnation,
+        "./neat-config"
+    ))
 
 pop.add_reporter(cp)
 pop.add_reporter(neat.StdOutReporter(True))

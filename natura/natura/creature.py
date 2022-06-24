@@ -166,6 +166,11 @@ class Creature(object):
 
         self.speed = self.GENE_SPEED if out[0] > .5 else self.GENE_SPEED / 3 if out[1] > .5 else 0
 
+        # NOTE: for eye quality, just blur the results more or less yk, and use lerp on the eye quality get the most accurate result!!
+
+        # you can just use lerp and delta as t to smooth things out!
+        # has more control rather than multiplying the value by delta!!
+
         # if self.do_release_waste: 
         #     self.speed = 0
 

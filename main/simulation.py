@@ -110,21 +110,25 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
     population  = []
     genomes     = []
-    time_start  = time.time()
+    tick_count  = 0
     dragging    = False
 
     for genome_id, genome in _genomes:
         genome.fitness = 0
-        genomes.append(genome)
+        genomes.append(None)
         population.append(Creature(genome, config, (uniform(-WORLD_WIDTH, WORLD_WIDTH), uniform(-WORLD_HEIGHT, WORLD_HEIGHT))))
 
-    creature_index = randint(0, len(population)-1)
+    pop_count = len(population)
+    creature_index = randint(0, pop_count-1)
 
-    draw_nothing()
+    if ONLY_SIMULATE:
+        draw_nothing()
 
-    # DONT USE TIME FOR FITNESS use simulation ticks
-
+    # smallest distance for the creature and world is limited to delta aka our plank length
+    # so delta = 0.1 should be 1 meter since 1 pixel = 10 meters
+    # or, if that is wrong: delta * m/s = meters sinde t value cancels out
     while True:
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 QUIT = True
@@ -169,13 +173,11 @@ def eval_genomes(_genomes: list, config: neat.Config):
                 creature_index -= 1
                 if creature_index < 0: creature_index = len(population) - 1
 
-        if not ONLY_SIMULATE:
-            CAMERA.clear_screen()
-            CAMERA.draw_rect(COLOR_BACKGROUND, (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
-        
         WORLD.tick()
 
         if not ONLY_SIMULATE:
+            CAMERA.clear_screen()
+            CAMERA.draw_rect(COLOR_BACKGROUND, (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
             draw_world()
 
         creature: Creature
@@ -184,10 +186,11 @@ def eval_genomes(_genomes: list, config: neat.Config):
             inputs, out = creature.tick(WORLD, delta, population)
 
             if creature.health <= 0: 
-                genomes[i].fitness = (time.time() - time_start) / delta
+                # this is the issue, all the fitnesses are getting moved somewhere else..?
+                genomes[i] = population[i]
+                genomes[i].fitness = tick_count / 100.
                 population.pop(i)
-                if len(population) == 0:
-                    return
+                if len(population) == 0: return
                 continue
 
             if ONLY_SIMULATE: continue
@@ -233,6 +236,8 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
         if not ONLY_SIMULATE:
             CAMERA.tick(FPS)
+
+        tick_count += 1
 
 print("****** Running Natura ******")
 

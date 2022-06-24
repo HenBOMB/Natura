@@ -239,7 +239,7 @@ print("****** Running Natura ******")
 cp = neat.Checkpointer(10, None, './saves/gen-')
 
 pop = neat.Population(neat.Config(
-    Genome, neat.DefaultReproduction,
+    neat.DefaultGenome, neat.DefaultReproduction,
     neat.DefaultSpeciesSet, neat.DefaultStagnation,
     "./neat-config"
 ))

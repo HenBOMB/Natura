@@ -24,25 +24,28 @@ WORLD_WIDTH         = 1500
 WORLD_HEIGHT        = 1500
 FPS                 = 60
 
-PROPERTIES_FONT     = pygame.font.SysFont("comicsans", 15)
+TEXT_FONT     = pygame.font.SysFont("comicsans", 15)
 WORLD               = World(WORLD_WIDTH, WORLD_HEIGHT)
 CAMERA              = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
 
 DRAW_NETWORK        = False
 DRAW_STATS          = False
+QUIT = False
+# Will not draw anything, just run the simulation
+ONLY_SIMULATE = False
 
 COLOR_BACKGROUND    = (0, 0, 16)
 COLOR_HIGHLIGHT     = (COLOR_BACKGROUND[0], COLOR_BACKGROUND[1], COLOR_BACKGROUND[2] * 4)
-
 COLOR_WHITE         = (255, 255, 255)
 
-QUIT = False
-
-# Will not update or draw anything, just run the simulation
-ONLY_SIMULATE = False
-
+# Statistics
 GENERATION = 0
+MAX_FITNESS = 0
+MAX_FITNESS_ARR = [0]
+
+def draw_text(txt: str, pos: tuple, color = COLOR_WHITE):
+    CAMERA.screen.blit(TEXT_FONT.render(str(txt), True, COLOR_WHITE), pos)
 
 def draw_properties(creature: Creature):
     width, height = (300, 100)
@@ -51,11 +54,11 @@ def draw_properties(creature: Creature):
     CAMERA.screen.blit(surf, (SCREEN_WIDTH - width, 0))
 
     def draw_txt(txt, i):
-        text = PROPERTIES_FONT.render(str(txt), True, COLOR_WHITE)
+        text = TEXT_FONT.render(str(txt), True, COLOR_WHITE)
         CAMERA.screen.blit(text, (SCREEN_WIDTH - width, 7.5 * 2 * i))
 
     def draw_v_txt(txt, i):
-        text = PROPERTIES_FONT.render(str(txt), True, COLOR_WHITE)
+        text = TEXT_FONT.render(str(txt), True, COLOR_WHITE)
         CAMERA.screen.blit(text, (SCREEN_WIDTH - width + 80, 7.5 * 2 * i))
 
     draw_txt("Fov", 0)
@@ -70,6 +73,16 @@ def draw_properties(creature: Creature):
     draw_v_txt(creature.GENE_VIEW_RANGE, 4)
     draw_txt("Hunger", 5)
     draw_v_txt(creature.GENE_HUNGER, 5)
+
+def draw_stats(pop_count: int):
+    surf = pygame.Surface((200, 85), pygame.SRCALPHA)
+    surf.fill((0, 0, 0, 200))
+    CAMERA.screen.blit(surf, (0, 0))
+
+    draw_text(f"Generation: {GENERATION}", (0, 0))
+    draw_text(f"Max Fitness: {MAX_FITNESS_ARR[len(MAX_FITNESS_ARR)-1]}", (0, 20))
+    draw_text(f"Avr Fitness: {sum(MAX_FITNESS_ARR)/len(MAX_FITNESS_ARR)}", (0, 40))
+    draw_text(f"Pop count: {pop_count}", (0, 60))
 
 def draw_creature(c: Creature, highlight: bool = False):
     CAMERA.draw_circle(c.GENE_COLOR, c.pos, c.size_px)
@@ -88,16 +101,18 @@ def draw_world():
     for i, food in enumerate(WORLD.food):
         CAMERA.draw_image(IMAGE_FOOD, (food.pos[0] - food.size / 2, food.pos[1] - food.size / 2), food.size * 2.5)
 
-def draw_nothing():
+def draw_static():
     CAMERA.clear_screen()
-    text = PROPERTIES_FONT.render(f"Generation: {GENERATION}", True, COLOR_WHITE)
-    CAMERA.screen.blit(text, (0, 0))
-    text = PROPERTIES_FONT.render(f"Press 'F' to resume viewing the realtime simulation", True, COLOR_WHITE)
-    CAMERA.screen.blit(text, (0, 20))
+    draw_text(f"Generation: {GENERATION}", (0, 0))
+    draw_text(f"Max Fitness: {MAX_FITNESS_ARR[len(MAX_FITNESS_ARR)-1]}", (0, 20))
+    draw_text(f"Avr Fitness: {sum(MAX_FITNESS_ARR)/len(MAX_FITNESS_ARR)}", (0, 40))
+    draw_text(f"Press 'F' to resume viewing the realtime simulation", (0, 80))
     pygame.display.update()
 
 def eval_genomes(_genomes: list, config: neat.Config):
-    global DRAW_NETWORK, DRAW_STATS, QUIT, ONLY_SIMULATE, GENERATION
+    global DRAW_NETWORK, DRAW_STATS, QUIT, ONLY_SIMULATE, GENERATION, MAX_FITNESS
+    MAX_FITNESS = 0
+
     if QUIT:
         pygame.quit()
         sys.exit()
@@ -115,11 +130,10 @@ def eval_genomes(_genomes: list, config: neat.Config):
         genome.fitness = 0
         population.append(Creature(genome, config, (uniform(-WORLD_WIDTH, WORLD_WIDTH), uniform(-WORLD_HEIGHT, WORLD_HEIGHT))))
 
-    pop_count = len(population)
-    creature_index = randint(0, pop_count-1)
+    creature_index = randint(0, len(population)-1)
 
     if ONLY_SIMULATE:
-        draw_nothing()
+        draw_static()
 
     # smallest distance for the creature and world is limited to delta aka our plank length
     # so delta = 0.1 should be 1 meter since 1 pixel = 10 meters
@@ -161,9 +175,12 @@ def eval_genomes(_genomes: list, config: neat.Config):
                     DRAW_NETWORK = not DRAW_NETWORK
                 elif event.key == pygame.K_s:
                     DRAW_STATS = not DRAW_STATS
-                elif event.key == pygame.K_f:
+                elif event.key == pygame.K_RETURN:
                     ONLY_SIMULATE = not ONLY_SIMULATE
-                    draw_nothing()
+                    draw_static()
+                elif event.key == pygame.K_f:
+                    if len(population) != 0:
+                        CAMERA.set_global_pos(population[creature_index].pos)
 
             elif event.type == pygame.K_UP:
                 creature_index += 1
@@ -189,6 +206,11 @@ def eval_genomes(_genomes: list, config: neat.Config):
                 # this is the issue, all the fitnesses are getting moved somewhere else..?
                 creature.genome.fitness = tick_count / 100.
                 population.pop(i)
+                if creature.genome.fitness > MAX_FITNESS:
+                    MAX_FITNESS = creature.genome.fitness
+                    MAX_FITNESS_ARR.append(MAX_FITNESS)
+                    if len(MAX_FITNESS_ARR) == 5: MAX_FITNESS_ARR.pop(0)
+                
                 if len(population) == 0: return
                 continue
 
@@ -234,6 +256,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
                 draw_properties(creature)
 
         if not ONLY_SIMULATE:
+            draw_stats(len(population))
             CAMERA.tick(FPS)
 
         tick_count += 1
@@ -242,12 +265,12 @@ print("****** Running Natura ******")
 
 cp = neat.Checkpointer(10, None, './saves/gen-')
 
-pop = neat.Population(neat.Config(
-    Genome, neat.DefaultReproduction,
-    neat.DefaultSpeciesSet, neat.DefaultStagnation,
-    "./neat-config"
-))
-# pop = cp.restore_checkpoint('./saves/gen-149')
+# pop = neat.Population(neat.Config(
+#     Genome, neat.DefaultReproduction,
+#     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+#     "./neat-config"
+# ))
+pop = cp.restore_checkpoint('./saves/gen-289')
 
 pop.add_reporter(cp)
 pop.add_reporter(neat.StdOutReporter(True))

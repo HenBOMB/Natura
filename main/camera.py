@@ -1,6 +1,6 @@
 import pygame
 from math import ceil
-from natura.util import clamp
+from natura.util import clamp, lerp
 
 class Camera():
     def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, fps: int = 60):
@@ -23,8 +23,12 @@ class Camera():
     
     def pan_camera(self, pos: tuple):
         v = clamp(self.zoom_scale, .4, 2)
+        v = v if v < 1 else lerp(2, 7, (v-.9))
         self.offset_x = (self.click_offset_x + (pos[0] - self.cam_pos[0]) * v)
         self.offset_y = (self.click_offset_y + (pos[1] - self.cam_pos[1]) * v)
+
+    def set_global_pos(self, pos: tuple):
+        self.offset_x, self.offset_y = (self.screen_width / 2 - pos[0], self.screen_height / 2 - pos[1])
 
     def zoom(self, dir: int):
         self.zoom_scale = clamp(dir * .1 + self.zoom_scale, 0, 1.9)

@@ -122,6 +122,8 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
     draw_nothing()
 
+    # DONT USE TIME FOR FITNESS use simulation ticks
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -142,7 +144,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
                 for i, creature in enumerate(population):
                     d = util.dist(CAMERA.fix_pos(creature.pos), pygame.mouse.get_pos())
-                    if d < CAMERA.fix_scale(creature.size_px):
+                    if d < CAMERA.fix_scale(creature.size_px*2):
                         creature_index = i
                         break
 
@@ -182,7 +184,7 @@ def eval_genomes(_genomes: list, config: neat.Config):
             inputs, out = creature.tick(WORLD, delta, population)
 
             if creature.health <= 0: 
-                genomes[i].fitness = time.time() - time_start
+                genomes[i].fitness = (time.time() - time_start) / delta
                 population.pop(i)
                 if len(population) == 0:
                     return
@@ -199,21 +201,21 @@ def eval_genomes(_genomes: list, config: neat.Config):
             if DRAW_NETWORK:
                 nndraw = NN(config, genome, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
                 nndraw.update_inputs([
-                    f"{inputs[0]}",
-                    f"{inputs[1]}",
-                    f"{inputs[2]}",
-                    f"{inputs[3]}",
-                    f"{inputs[4]}",
-                    f"{inputs[5]}",
-                    f"{inputs[6]}",
-                    f"{inputs[7]}",
-                    f"{inputs[8]}",
-                    f"{inputs[9]}",
-                    f"{inputs[10]}",
-                    f"{inputs[11]}",
-                    f"{inputs[12]}",
-                    f"{inputs[13]}",
-                    f"{inputs[14]}",
+                    f"H {inputs[0]}",
+                    f"H {inputs[1]}",
+                    f"S {inputs[2]}",
+                    f"A {inputs[3]}",
+                    f"D {inputs[4]}",
+                    f"R {inputs[5]}",
+                    f"G {inputs[6]}",
+                    f"B {inputs[7]}",
+                    f"C {inputs[8]}",
+                    f"A {inputs[9]}",
+                    f"D {inputs[10]}",
+                    f"R {inputs[11]}",
+                    f"G {inputs[12]}",
+                    f"B {inputs[13]}",
+                    f"C {inputs[14]}",
                 ])
 
                 nndraw.update_outputs([
@@ -234,16 +236,17 @@ def eval_genomes(_genomes: list, config: neat.Config):
 
 print("****** Running Natura ******")
 
-cp = neat.Checkpointer(5, None, './saves/gen-')
+cp = neat.Checkpointer(10, None, './saves/gen-')
 
-# pop = neat.Population(neat.Config(
-#     Genome, neat.DefaultReproduction,
-#     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-#     "./neat-config"
-# ))
-pop = cp.restore_checkpoint('./saves/gen-4')
+pop = neat.Population(neat.Config(
+    Genome, neat.DefaultReproduction,
+    neat.DefaultSpeciesSet, neat.DefaultStagnation,
+    "./neat-config"
+))
+# pop = cp.restore_checkpoint('./saves/gen-489')
 
 pop.add_reporter(cp)
+pop.add_reporter(neat.StdOutReporter(True))
 
 best = pop.run(eval_genomes)
 

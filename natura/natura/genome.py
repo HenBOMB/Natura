@@ -88,9 +88,9 @@ class Genome(neat.DefaultGenome):
     def mutate(self, config):
         super().mutate(config)
 
-        mutate_power    = self.get_gene(Genes.MUTATE_POWER).value
-        mutate_rate     = self.get_gene(Genes.MUTATE_RATE).value
-        replace_rate    = self.get_gene(Genes.REPLACE_RATE).value
+        mutate_power    = self.get_value(Genes.MUTATE_POWER)
+        mutate_rate     = self.get_value(Genes.MUTATE_RATE)
+        replace_rate    = self.get_value(Genes.REPLACE_RATE)
 
         for key in self.genes.keys():
             self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)

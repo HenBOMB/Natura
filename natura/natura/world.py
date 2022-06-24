@@ -22,8 +22,8 @@ class World():
 
     def spawn_food(self, count: int):
         for i in range(count):
-            x = randint(-self.width/2+5, self.height/2-5)
-            y = randint(-self.width/2+5, self.height/2-5)
+            x = randint(-self.width+5, self.height-5)
+            y = randint(-self.width+5, self.height-5)
             food = Food((x, y))
             food.energize()
             self.food.append(food)

@@ -1,4 +1,4 @@
-import random
+from random import random
 from natura.util import energy_to_mass, mass_to_energy
 
 TYPE_PLANT = 0
@@ -35,9 +35,8 @@ class Food():
         return e
 
     # used only once
-    def energize(self, seed: float):
-        random.seed(seed)
-        self.energy = (30 + random.random() * 30) * self.mult
+    def energize(self):
+        self.energy = (30 + random() * 30) * self.mult
         self.update()
 
     def update(self):

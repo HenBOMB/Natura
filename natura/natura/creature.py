@@ -39,7 +39,7 @@ class Creature(object):
     def get_closest(self, fwd: tuple, max_dist: int, array: list):
         _dist   = max_dist
         _angle  = 0
-        _color  = 0
+        _color  = (0, 0, 0)
         _count  = 0
         _index  = 0
 

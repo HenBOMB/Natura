@@ -24,6 +24,7 @@ def rand_negpos(seed: float):
     return (random.random() - .5) * 2
 
 def percent(a, b):
+    if b == 0: return 0
     return round((a / b) * 100)
 
 def rand_bool():

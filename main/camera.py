@@ -11,16 +11,15 @@ class Camera():
         self.click_offset_x = 0
         self.click_offset_y = 0
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.fps = fps
         self.clock = pygame.time.Clock()
         self.delta = 1. / float(fps)
         self.screen_width = SCREEN_WIDTH
         self.screen_height = SCREEN_HEIGHT
     
-    def tick(self):
+    def tick(self, fps: int):
         if self.clock.get_fps() != 0: self.delta = 1. / self.clock.get_fps()
         pygame.display.update()
-        self.clock.tick(self.fps)
+        self.clock.tick(fps)
     
     def pan_camera(self, pos: tuple):
         v = clamp(self.zoom_scale, .4, 2)

@@ -11,7 +11,7 @@ class Simulator():
         self.world = world
         self.tick_function = tick_function
         self.end_gen_function = end_gen_function
-        self.delta = 0.03
+        self.delta = 0.04
         self.pop = None
         self.start_network = None
     
@@ -89,4 +89,4 @@ class Simulator():
                         return
 
             tick_count += 1
-            if self.tick_function: self.delta = self.tick_function(population) or 0.03
+            if self.tick_function: self.delta = self.tick_function(population) or 0.04

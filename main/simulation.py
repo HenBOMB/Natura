@@ -38,6 +38,7 @@ DRAW_NETWORK        = False
 DRAW_STATS          = False
 DRAW_SIMULATION     = True
 DRAGGING            = False
+FOLLOW_CREATURE     = False
 
 COLOR_BACKGROUND    = (0, 0, 16)
 COLOR_HIGHLIGHT     = (COLOR_BACKGROUND[0], COLOR_BACKGROUND[1], COLOR_BACKGROUND[2] * 4)
@@ -123,7 +124,7 @@ def end_gen(generation: int, best_genome: Genome):
     if not DRAW_SIMULATION: draw_static()
 
 def tick(population: list):
-    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE
+    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE, FOLLOW_CREATURE
 
     if not DRAW_SIMULATION: 
         for event in pygame.event.get():
@@ -177,6 +178,8 @@ def tick(population: list):
             elif event.key == pygame.K_f:
                 try: CAMERA.set_global_pos(population[CLICKED_CREATURE].pos)
                 except: pass
+            elif event.key == pygame.K_t:
+                FOLLOW_CREATURE = not FOLLOW_CREATURE
 
     pop_l = len(population)
 
@@ -201,6 +204,10 @@ def tick(population: list):
         if DRAW_STATS:
             draw_properties(creature)
 
+    if FOLLOW_CREATURE:
+        try: CAMERA.set_global_pos(population[CLICKED_CREATURE].pos)
+        except: pass
+
     draw_stats(pop_l)
     CAMERA.tick(FPS)
     return CAMERA.delta
@@ -210,7 +217,7 @@ simulator = Simulator(WORLD, tick, end_gen)
 cp = argutil.get_arg("cp", None)
 if cp: simulator.load(cp)
 
-simulator.set_start_network('./saves/network')
-simulator.start(argutil.get_arg("int", 30))
+# simulator.set_start_network('./saves/network')
+simulator.start(argutil.get_arg("int", 50))
 
 GENERATION = simulator.pop.generation

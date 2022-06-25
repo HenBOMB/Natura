@@ -125,7 +125,7 @@ def end_gen(generation: int, best_genome: Genome):
     if not DRAW_SIMULATION: draw_static()
 
 def tick(population: list):
-    global DRAW_SIMULATION, DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE
+    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE
 
     if not DRAW_SIMULATION: 
         for event in pygame.event.get():
@@ -136,7 +136,7 @@ def tick(population: list):
                 print("WARNING! Simulation Paused due to pygame enabled and window minimized")
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 DRAW_SIMULATION = not DRAW_SIMULATION
-        return None
+        return
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -175,6 +175,7 @@ def tick(population: list):
             elif event.key == pygame.K_RETURN:
                 DRAW_SIMULATION = not DRAW_SIMULATION
                 draw_static()
+                return
             elif event.key == pygame.K_f:
                 try: CAMERA.set_global_pos(population[CLICKED_CREATURE].pos)
                 except: pass

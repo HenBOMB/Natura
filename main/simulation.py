@@ -212,12 +212,11 @@ def tick(population: list):
     CAMERA.tick(FPS)
     return CAMERA.delta
 
-simulator = Simulator(WORLD, tick, end_gen)
+simulator = Simulator(WORLD)
 
 cp = argutil.get_arg("cp", None)
-if cp: simulator.load(cp)
+if cp: simulator.load_checkpoint(cp)
 
-# simulator.set_start_network('./saves/network')
-simulator.start(argutil.get_arg("int", 50))
+simulator.start(argutil.get_arg("int", 50), tick_function=tick, end_gen_function=end_gen)
 
 GENERATION = simulator.pop.generation

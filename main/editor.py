@@ -21,8 +21,8 @@ CAMERA              = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 COLOR_BACKGROUND    = (0, 0, 16)
 
 input_labels = [
-    "Hunger", 
     "Health", 
+    "Hunger", 
     "Speed", 
     "Creature angle", 
     "Creature dist", 

@@ -9,7 +9,7 @@ from neat.graphs import creates_cycle
 
 # https://neat-python.readthedocs.io/en/latest/_modules/attributes.html?highlight=mutate_value#
 
-# basically all craeture inputs and food color
+# basically all creature inputs and food color
 restricted_inputs = [-4, -5, -6, -7, -8, -9, -12, -13, -14]
 allowed_inputs = [-1, -2, -3, -10, -11, -15]
 
@@ -75,11 +75,11 @@ class Genome(neat.DefaultGenome):
         self.genes[Genes.ENERGY]        = Gene(15, 30, type=Gene.TYPE_INT) # 25 
         self.genes[Genes.HEALTH]        = Gene(10, 50, type=Gene.TYPE_INT) #100
         self.genes[Genes.SPEED]         = Gene(0.1, 2, 0) # 1
-        self.genes[Genes.FOV]           = Gene(20, 50, 160) # 45
+        self.genes[Genes.FOV]           = Gene(20, 50, 100) # 45
         self.genes[Genes.COLOR]         = Gene((20, 20, 20), (210, 210, 210), 0, 255, Gene.TYPE_TUPLE)
         self.genes[Genes.HUNGER_BIAS]   = Gene(.4, .8, .1, 1) # .5
-        self.genes[Genes.MUTATE_POWER]  = Gene(.1, .3, .1, 1) # .2
-        self.genes[Genes.MUTATE_RATE]   = Gene(.1, .3, .1, 1) # .3
+        self.genes[Genes.MUTATE_POWER]  = Gene(.1, .2, .1, 1) # .2
+        self.genes[Genes.MUTATE_RATE]   = Gene(.1, .2, .1, 1) # .3
         self.genes[Genes.REPLACE_RATE]  = Gene(.1, .2, .1, 1) # .1
 
     def configure_crossover(self, genome1, genome2, config):

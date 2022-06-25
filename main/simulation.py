@@ -38,9 +38,8 @@ IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
 
 DRAW_NETWORK        = False
 DRAW_STATS          = False
-QUIT = False
-# Will not draw anything, just run the simulation
-ONLY_SIMULATE = False
+QUIT                = False
+ONLY_SIMULATE       = False
 
 COLOR_BACKGROUND    = (0, 0, 16)
 COLOR_HIGHLIGHT     = (COLOR_BACKGROUND[0], COLOR_BACKGROUND[1], COLOR_BACKGROUND[2] * 4)
@@ -113,7 +112,7 @@ def draw_static():
     draw_text(f"Generation: {GENERATION}", (0, 0))
     draw_text(f"Max Fitness: {MAX_FITNESS_ARR[len(MAX_FITNESS_ARR)-1]}", (0, 20))
     draw_text(f"Avr Fitness: {sum(MAX_FITNESS_ARR)/len(MAX_FITNESS_ARR)}", (0, 40))
-    draw_text(f"Press 'F' to resume viewing the realtime simulation", (0, 80))
+    draw_text(f"Press 'Enter' to resume viewing the realtime simulation", (0, 80))
     pygame.display.update()
 
 # could implement parallelism into this to speed it up, obviously not drawing anything, but like before!

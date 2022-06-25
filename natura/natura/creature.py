@@ -126,10 +126,10 @@ class Creature(object):
         inputs = (
             # SENSES #
 
-            # hungriness
-            round(_hungriness * 100),
             # health
             percent(self.health, self.GENE_HEALTH),
+            # hungriness
+            round(_hungriness * 100),
             # speed %
             percent(self.speed, self.GENE_SPEED),
 

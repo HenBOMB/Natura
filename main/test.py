@@ -1,17 +1,19 @@
-import natura
-import neat
+# import natura
+# import neat
 
-config = neat.Config(
-    natura.Genome, neat.DefaultReproduction,
-    neat.DefaultSpeciesSet, neat.DefaultStagnation,
-    "./neat-config"
-)
+# config = neat.Config(
+#     natura.Genome, neat.DefaultReproduction,
+#     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+#     "./neat-config"
+# )
 
-pop = neat.Population(config)
+# pop = neat.Population(config)
 
-genome: natura.Genome = pop.population[1]
+# genome: natura.Genome = pop.population[1]
 
-print(genome.connections)
+# print(genome.connections)
+
+print(None or 1)
 
 '''
 my goal is to slowly evolve the basics, and then add more and more inputs aka senses from the ground up

@@ -11,16 +11,17 @@ if argutil.has_arg("help"):
     print("--int [int]")
     sys.exit()
 
-import pygame, pickle
+import pygame
+import neat
 
 pygame.init()
 pygame.font.init()
 pygame.display.set_caption("Natura - Life Evolution")
 
-from natura import Creature, World, util, Genome, Simulator
+from natura import Creature, World, util, Genome, NaturaSimulator
 from nndraw import NN
 from camera import Camera
-from random import randint, uniform, random
+from random import randint
 from math   import radians, sin, cos
 
 SCREEN_WIDTH        = 1600
@@ -46,8 +47,6 @@ COLOR_WHITE         = (255, 255, 255)
 
 CLICKED_CREATURE    = 0
 GENERATION          = 0
-MAX_FITNESS         = 0
-AVR_FITNESS         = []
 
 def draw_text(txt: str, pos: tuple, color = COLOR_WHITE):
     CAMERA.screen.blit(TEXT_FONT.render(str(txt), True, COLOR_WHITE), pos)
@@ -83,11 +82,8 @@ def draw_stats(pop_count: int):
     surf = pygame.Surface((200, 85), pygame.SRCALPHA)
     surf.fill((0, 0, 0, 200))
     CAMERA.screen.blit(surf, (0, 0))
-    l = len(AVR_FITNESS)
     draw_text(f"Generation: {GENERATION}", (0, 0))
-    draw_text(f"Max Fitness: {MAX_FITNESS}", (0, 20))
-    draw_text(f"Avr Fitness: {sum(AVR_FITNESS)/l if l != 0 else 0}", (0, 40))
-    draw_text(f"Pop count: {pop_count}", (0, 60))
+    draw_text(f"Pop count: {pop_count}", (0, 20))
 
 def draw_creature(c: Creature, highlight: bool = False):
     CAMERA.draw_circle(c.GENE_COLOR, c.pos, c.size_px)
@@ -108,18 +104,12 @@ def draw_world():
 
 def draw_static():
     CAMERA.clear_screen()
-    l = len(AVR_FITNESS)
     draw_text(f"Generation: {GENERATION}", (0, 0))
-    draw_text(f"Max Fitness: {MAX_FITNESS}", (0, 20))
-    draw_text(f"Avr Fitness: {(sum(AVR_FITNESS)/len(AVR_FITNESS) if l > 0 else 0)}", (0, 40))
-    draw_text(f"Press 'Enter' to resume viewing the realtime simulation", (0, 80))
+    draw_text(f"Press 'Enter' to resume viewing the realtime simulation", (0, 20))
     pygame.display.update()
 
-def end_gen(generation: int, best_genome: Genome):
-    global GENERATION, MAX_FITNESS
-    MAX_FITNESS = best_genome.fitness
-    AVR_FITNESS.append(MAX_FITNESS)
-    if len(AVR_FITNESS) == 5: AVR_FITNESS.pop(0)
+def end_gen(generation: int):
+    global GENERATION
     GENERATION  = generation
     if not DRAW_SIMULATION: draw_static()
 
@@ -183,7 +173,7 @@ def tick(population: list):
 
     pop_l = len(population)
 
-    if CLICKED_CREATURE >= pop_l: 
+    if CLICKED_CREATURE >= pop_l and pop_l != 0: 
         CLICKED_CREATURE = randint(0, pop_l-1)
 
     CAMERA.clear_screen()
@@ -212,11 +202,19 @@ def tick(population: list):
     CAMERA.tick(FPS)
     return CAMERA.delta
 
-simulator = Simulator(WORLD)
-
+simulator = NaturaSimulator(WORLD)
 cp = argutil.get_arg("cp", None)
-if cp: simulator.load_checkpoint(cp)
+if cp:
+    simulator.load(cp)
+else:
+    config = neat.Config(
+        Genome, neat.DefaultReproduction,
+        neat.DefaultSpeciesSet, neat.DefaultStagnation,
+        "./neat-config"
+    )
+    simulator.init(config)
 
-simulator.start(argutil.get_arg("int", 50), tick_function=tick, end_gen_function=end_gen)
+simulator.spawn_species("uwu", (0, 0), WORLD_WIDTH/2, 50, (255, 255, 100))
+simulator.run(tick_function=tick, end_gen_function=end_gen, save_interval=argutil.get_arg("int", 10))
 
-GENERATION = simulator.pop.generation
+GENERATION = simulator.generation

@@ -4,7 +4,7 @@ import pickle
 import gzip
 import random
 
-from natura import Creature, Genome
+from natura import Creature, Genome, Genes
 from random import randint
 from neat.genes import DefaultConnectionGene, DefaultNodeGene
 from itertools import count
@@ -30,55 +30,75 @@ class NaturaSimulator():
     Mimic real evolution with this class\n
     Creatures will pass on their genes through offsprings, only the toughest will survive!
     '''
-    def __init__(self, world: natura.World, config: neat.Config):
+    def __init__(self, world: natura.World):
         self.world              = world
         self.delta              = DEFAULT_DELTA
-        self.config             = config
         self.indexer            = count(1)
         self.population         = []
         self.species            = {}
         self.best_genomes       = {}
-        self.generation         = 0
-        self.generation_start   = 0
+        self.generation         = 1
+        self.generation_start   = 1
 
-    def spawn_species(self, name: str, pos: tuple, radius: int, count: int):
+    def spawn_species(self, name: str, pos: tuple, radius: int, count: int, color: tuple = None):
         '''
         Spawn a species at a give position.
         '''
-
         self.best_genomes[name] = None
-        self.species[name] = (pos, radius, count)
+        genome = Genome(0)
+        if color: genome.set_value(Genes.COLOR, color)
+        self.species[name] = (pos, radius, count, genome.genes)
 
-    def run(self, tick_function = None, end_gen_function = None, generations: int = None, save_interval: int = 10, save_path: str = './natura-checkpoint-'):
+    def init(self, config: neat.Config):
+        self.config = config
+
+    def run(self, tick_function = None, end_gen_function = None, max_generations: int = None, save_interval: int = 10, save_path: str = './natura-checkpoint-'):
         while True:
-            self.spawn_pop()
-            tick_count = 0
+            self.start_generation(tick_function)
+            self.end_generation(end_gen_function)
             
+            if self.generation_start % save_interval == 0:
+                self.save(save_path)
+
+            if max_generations and max_generations >= self.generation: break
+    
+    def start_generation(self, func):
+        self.spawn_population()
+        self.world.clear()
+        self.world.spawn_food(250)
+
+        tick_count = 0
+
+        while True:
+            self.world.tick()
+
             creature: Creature
             for i, creature in enumerate(self.population):
                 creature.tick(self.world, DEFAULT_DELTA, self.population)
 
-                if creature.health <= 0:
-                    creature.genome.fitness = tick_count / 100
-                    if self.best_genomes[creature.species].fitness < creature.genome.fitness:
-                        self.best_genomes[creature.species] = creature.genome
-                    self.population.pop(i)
+                if creature.health > 0: continue
 
-                if tick_function: tick_function(self.population)
+                creature.genome.fitness = tick_count / 100
 
-                tick_count += 1
+                if not self.best_genomes[creature.species]: 
+                    self.best_genomes[creature.species] = creature.genome
 
-            if end_gen_function: end_gen_function(self.generation)
+                if self.best_genomes[creature.species].fitness < creature.genome.fitness:
+                    self.best_genomes[creature.species] = creature.genome
 
-            self.generation += 1
-            self.generation_start += 1
+                self.population.pop(i)
 
-            if generations and generations == self.generation_start: 
-                break
+                if len(self.population) == 0: return
 
-            if self.generation_start % save_interval == 0:
-                self.save(save_path)
+            if func: func(self.population)
+
+            tick_count += 1
     
+    def end_generation(self, func):
+        self.generation += 1
+        self.generation_start += 1
+        if func: func(self.generation)
+        
     def save(self, path):
         filename = f'{path}{self.generation}'
         print("Saving checkpoint to {0}".format(filename))
@@ -87,31 +107,34 @@ class NaturaSimulator():
             data = (self.generation, self.config, self.species, self.best_genomes, random.getstate())
             pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    @staticmethod
-    def load(world, path):
+    def load(self, path):
+        if not path: return
         with gzip.open(path) as f:
             generation, config, species, best_genomes, state = pickle.load(f)
             random.setstate(state)
-            sim = NaturaSimulator(world, config)
-            sim.generation = generation
-            sim.species = species
-            sim.best_genomes = best_genomes
-            return sim
+            self.config       = config
+            self.generation   = generation
+            self.species      = species
+            self.best_genomes = best_genomes
 
-    def spawn_pop(self):
+    def spawn_population(self):
         self.population = []
 
         for key in self.species:
-            pos, radius, count = self.species[key]
+            pos, radius, count, genes = self.species[key]
 
             for _ in range(count):
                 k = next(self.indexer)
-                g = natura.Genome(k)
-                g.configure_new(self.config.genome_config)
+    
+                genome = natura.Genome(k, True)
+                genome.configure_new(self.config.genome_config)
                 if self.best_genomes[key]:
-                    g.nodes = self.best_genomes[key].nodes
-                    g.connections = self.best_genomes[key].connections
-                c = Creature(g, self.config, (randint(pos[0]-radius, pos[0]+radius), randint(pos[1]-radius, pos[1]+radius)))
+                    genome.nodes = self.best_genomes[key].nodes
+                    genome.connections = self.best_genomes[key].connections
+                genome.mutate(self.config.genome_config)
+                genome.set_genes(genes)
+
+                c = Creature(genome, self.config, (randint(pos[0]-radius, pos[0]+radius), randint(pos[1]-radius, pos[1]+radius)))
                 c.species = key
                 self.population.append(c)
     

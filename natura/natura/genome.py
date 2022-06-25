@@ -150,6 +150,8 @@ class Genome(neat.DefaultGenome):
             if key == Genes.MUTATE_POWER: break
             self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
 
+    
+
     def mutate_add_connection(self, config):
         possible_outputs = list(iterkeys(self.nodes))
         out_node = choice(possible_outputs)
@@ -175,6 +177,12 @@ class Genome(neat.DefaultGenome):
     def get_value(self, key: str): 
         return self.genes[key].value
 
+    def set_value(self, gene: str, value):
+        self.genes[gene].value = value
+
+    def set_genes(self, genes: dict):
+        self.genes = genes
+    
     def save(self, path: str):
         with open(path, 'wb') as f:
             pickle.dump(self.genes, f)

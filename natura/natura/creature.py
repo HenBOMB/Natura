@@ -163,7 +163,6 @@ class Creature(object):
         # output = lambda i : out[i] > .5
 
         self.do_eat_food = True#out[4] > .5
-        # self.do_release_waste = out[5] > .5
 
         self.speed = self.GENE_SPEED if out[0] > .5 else self.GENE_SPEED / 3 if out[1] > .5 else 0
 
@@ -171,9 +170,6 @@ class Creature(object):
 
         # you can just use lerp and delta as t to smooth things out!
         # has more control rather than multiplying the value by delta!!
-
-        # if self.do_release_waste: 
-        #     self.speed = 0
 
         # region testing
         # testing: using physics to move the creature
@@ -259,9 +255,6 @@ class Creature(object):
             if meter_to_pixel(_food_dist) - self.size_px < food.size:
                 self.eat_food(food)
 
-        # if self.do_release_waste: 
-        #     self.release_waste(world)
-
         return (inputs, out)
 
     def eat_food(self, food: Food):
@@ -287,7 +280,3 @@ class Creature(object):
     def drain_energy(self, energy: float):
         self.energy -= energy
         self.energy = clamp(self.energy, 0, self.GENE_ENERGY)
-
-    # def release_waste(self, world: World):
-    #     self.mass_waste = 0
-    #     world.add_poop(self.pos)

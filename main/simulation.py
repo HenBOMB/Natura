@@ -116,9 +116,6 @@ def draw_static():
     draw_text(f"Press 'Enter' to resume viewing the realtime simulation", (0, 80))
     pygame.display.update()
 
-# could implement parallelism into this to speed it up, obviously not drawing anything, but like before!
-# https://github.com/HenBOMB/Natura/commit/e10530add790470874891472f48d0c5bee916e23#diff-852f425cb274d4895ce21fa82f7075101cc8e8bcd94d000838c57fc5241afa5a
-
 def end_gen(generation: int, best_genome: Genome):
     global GENERATION, MAX_FITNESS
     MAX_FITNESS = best_genome.fitness
@@ -128,7 +125,7 @@ def end_gen(generation: int, best_genome: Genome):
     if not DRAW_SIMULATION: draw_static()
 
 def tick(population: list):
-    global DRAW_SIMULATION
+    global DRAW_SIMULATION, DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE
 
     if not DRAW_SIMULATION: 
         for event in pygame.event.get():
@@ -140,8 +137,6 @@ def tick(population: list):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 DRAW_SIMULATION = not DRAW_SIMULATION
         return None
-        
-    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -212,5 +207,10 @@ def tick(population: list):
     return CAMERA.delta
 
 simulator = Simulator(WORLD, tick, end_gen)
-# simulator.load('./saves/gen-719')
-simulator.start(30)
+
+cp = argutil.get_arg("cp", None)
+if cp: simulator.load(cp)
+
+simulator.start(argutil.get_arg("int", 30))
+
+GENERATION = simulator.pop.generation

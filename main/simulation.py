@@ -38,7 +38,6 @@ IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
 
 DRAW_NETWORK        = False
 DRAW_STATS          = False
-QUIT                = False
 DRAW_SIMULATION     = True
 DRAGGING            = False
 
@@ -120,7 +119,7 @@ def draw_static():
 # could implement parallelism into this to speed it up, obviously not drawing anything, but like before!
 # https://github.com/HenBOMB/Natura/commit/e10530add790470874891472f48d0c5bee916e23#diff-852f425cb274d4895ce21fa82f7075101cc8e8bcd94d000838c57fc5241afa5a
 
-def start_gen(generation: int, best_genome: Genome):
+def end_gen(generation: int, best_genome: Genome):
     global GENERATION, MAX_FITNESS
     MAX_FITNESS = best_genome.fitness
     AVR_FITNESS.append(MAX_FITNESS)
@@ -129,7 +128,20 @@ def start_gen(generation: int, best_genome: Genome):
     if not DRAW_SIMULATION: draw_static()
 
 def tick(population: list):
-    global DRAW_NETWORK, DRAW_STATS, QUIT, DRAW_SIMULATION, GENERATION, MAX_FITNESS, DRAGGING, CLICKED_CREATURE
+    global DRAW_SIMULATION
+
+    if not DRAW_SIMULATION: 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.WINDOWMINIMIZED:
+                print("WARNING! Simulation Paused due to pygame enabled and window minimized")
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                DRAW_SIMULATION = not DRAW_SIMULATION
+        return None
+        
+    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -172,8 +184,6 @@ def tick(population: list):
                 try: CAMERA.set_global_pos(population[CLICKED_CREATURE].pos)
                 except: pass
 
-    if not DRAW_SIMULATION: return None
-
     pop_l = len(population)
 
     if CLICKED_CREATURE >= pop_l: 
@@ -201,6 +211,6 @@ def tick(population: list):
     CAMERA.tick(FPS)
     return CAMERA.delta
 
-simulator = Simulator(WORLD, tick, start_gen)
+simulator = Simulator(WORLD, tick, end_gen)
 # simulator.load('./saves/gen-719')
 simulator.start(30)

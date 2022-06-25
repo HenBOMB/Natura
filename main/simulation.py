@@ -11,9 +11,7 @@ if argutil.has_arg("help"):
     print("--int [int]")
     sys.exit()
 
-import neat
-import pygame
-import pickle
+import pygame, pickle
 
 pygame.init()
 pygame.font.init()
@@ -212,6 +210,7 @@ simulator = Simulator(WORLD, tick, end_gen)
 cp = argutil.get_arg("cp", None)
 if cp: simulator.load(cp)
 
+simulator.set_start_network('./saves/network')
 simulator.start(argutil.get_arg("int", 30))
 
 GENERATION = simulator.pop.generation

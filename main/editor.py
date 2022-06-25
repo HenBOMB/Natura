@@ -1,6 +1,7 @@
 if __name__ != '__main__':
     raise ImportError(f"Cannot import module '{__file__}'")
 
+import pickle
 import sys
 import pygame
 
@@ -14,13 +15,10 @@ from camera import Camera
 
 SCREEN_WIDTH        = 900
 SCREEN_HEIGHT       = 900
-
 TEXT_FONT           = pygame.font.SysFont("comicsans", 15)
 CAMERA              = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-COLOR_BACKGROUND    = (0, 0, 16)
-
-input_labels = [
+input_labels        = [
     "Health", 
     "Hunger", 
     "Speed", 
@@ -38,7 +36,7 @@ input_labels = [
     "Food count", 
 ]
 
-output_labels = [
+output_labels       = [
     "Forward", 
     "Back", 
     "Right", 
@@ -46,18 +44,19 @@ output_labels = [
     "Look for food / Eat", 
 ]
 
-inputs = [-i for i in range(1, len(input_labels) + 1)]
-hidden = []
-outputs = [-i for i in range(1, len(output_labels) + 1)]
+inputs              = [-i for i in range(1, len(input_labels) + 1)]
+hidden              = []
+outputs             = [i for i in range(0, len(output_labels))]
 
-connections = []
-nodes = []
-nodeIdList = []
-clicked_node = None
-dragging = 0
+connections         = []
+nodes               = []
+nodeIdList          = []
+clicked_node        = None
+dragging            = 0
 
-TOOLBAR_HEIGHT = 100
-NEW_HEIGHT = (SCREEN_HEIGHT-TOOLBAR_HEIGHT)
+TOOLBAR_HEIGHT      = 100
+NEW_HEIGHT          = (SCREEN_HEIGHT-TOOLBAR_HEIGHT)
+SAVE_PATH           = './saves/network'
 
 # get the arr with the highest count and use that as a measurement
 NODE_RADIUS = NEW_HEIGHT/len(inputs) if len(inputs) > len(outputs) else NEW_HEIGHT/len(outputs) if len(inputs) > len(hidden) else NEW_HEIGHT/len(hidden) if len(hidden) > len(outputs) else NEW_HEIGHT/len(outputs)
@@ -106,6 +105,27 @@ def get_clicked_node():
             return node
     return None
 
+def save_network():
+    with open(SAVE_PATH, 'wb') as f:
+        inputs  = [-1]
+        hidden  = []
+        outputs = []
+        conn    = []
+
+        for node in nodes:
+            if node.id < 0 and node.id < inputs[len(inputs)-1]:
+                inputs.append(node.id)
+            if node.id > len(inputs):
+                hidden.append(node.id)
+        for i in range(len(inputs),len(nodes)):
+            if nodes[i].id >= 0 and nodes[i].id < len(inputs):
+                outputs.append(nodes[i].id)
+        for c in connections:
+            conn.append((c.input.id, c.output.id))      
+
+        pickle.dump((inputs, hidden, outputs, conn), f)
+        print(f"Saved network to {SAVE_PATH}")
+
 while True:
     CAMERA.clear_screen((200, 200, 200))
 
@@ -141,14 +161,8 @@ while True:
             clicked_node = None
 
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_n:
-                pass
-            elif event.key == pygame.K_s:
-                pass
-            elif event.key == pygame.K_RETURN:
-                pass
-            elif event.key == pygame.K_f:
-                pass
+            if event.key == pygame.K_s:
+                save_network()
 
     surf = pygame.Surface((SCREEN_WIDTH, TOOLBAR_HEIGHT), pygame.SRCALPHA)
     surf.fill((100, 100, 100, 100))

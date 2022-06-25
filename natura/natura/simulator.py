@@ -1,8 +1,10 @@
 import neat
 import natura
+import pickle
 
 from natura import Creature
 from random import uniform
+from neat.genes import DefaultConnectionGene, DefaultNodeGene
 
 class Simulator():
     def __init__(self, world: natura.World, tick_function = None, end_gen_function = None):
@@ -11,21 +13,52 @@ class Simulator():
         self.end_gen_function = end_gen_function
         self.delta = 0.03
         self.pop = None
+        self.start_network = None
     
     def start(self, save_interval = 100, generations = None):
         if not self.pop:
-            self.pop = neat.Population(neat.Config(
+            config = neat.Config(
                 natura.Genome, neat.DefaultReproduction,
                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
                 "./neat-config"
-            ))
+            )
+            self.pop = neat.Population(config)
+        else:
+            config = self.pop.config
+
         self.pop.add_reporter(neat.Checkpointer(save_interval, None, './saves/gen-'))
         self.pop.add_reporter(neat.StdOutReporter(True))
+
+        if self.start_network:
+            # TODO inputs and outputs are not needed..?
+            inputs, hidden, outputs, connections = self.start_network
+
+            genome: natura.Genome
+            for genome in self.pop.population:
+                self.pop.population[genome].nodes       = {}
+                self.pop.population[genome].connections = {}
+
+                for key in outputs + hidden:
+                    node = DefaultNodeGene(key)
+                    node.init_attributes(config.genome_config)
+                    node.mutate(config.genome_config)
+                    self.pop.population[genome].nodes[key] = node
+
+                for key in connections:
+                    conn = DefaultConnectionGene(key)
+                    conn.init_attributes(config.genome_config)
+                    conn.mutate(config.genome_config)
+                    self.pop.population[genome].connections[key] = conn
+
         self.pop.run(self.eval_genomes, generations)
     
     def load(self, path: str):
         self.pop = neat.Checkpointer().restore_checkpoint(path)
     
+    def set_start_network(self, path: str):
+        with open(path, 'rb') as f:
+            self.start_network = pickle.load(f)
+
     def eval_genomes(self, genomes: list, config: neat.Config):
         tick_count = 0
         population = []

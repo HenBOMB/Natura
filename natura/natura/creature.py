@@ -10,13 +10,14 @@ from random import random
 class Creature(object):
 
     def __init__(self, genome: Genome, config: neat.Config, start_pos: tuple):
-        self.GENE_FOV           = 45#genome.get_value(Genes.FOV)
-        self.GENE_ENERGY        = 25#genome.get_value(Genes.ENERGY)
-        self.GENE_HEALTH        = 100#genome.get_value(Genes.HEALTH)
-        self.GENE_SPEED         = 1#genome.get_value(Genes.SPEED)
-        self.GENE_VIEW_RANGE    = 5#genome.get_value(Genes.VIEW_RANGE)
-        self.GENE_COLOR         = (100,100,100)#genome.get_value(Genes.COLOR)
-        self.GENE_HUNGER        = .6#genome.get_value(Genes.HUNGER_BIAS)
+        self.GENE_FOV           = genome.get_value(Genes.FOV)
+        self.GENE_ENERGY        = genome.get_value(Genes.ENERGY)
+        self.GENE_HEALTH        = genome.get_value(Genes.HEALTH)
+        self.GENE_SPEED         = genome.get_value(Genes.SPEED)
+        self.GENE_VIEW_RANGE    = genome.get_value(Genes.VIEW_RANGE)
+        self.GENE_COLOR         = genome.get_value(Genes.COLOR)
+        self.GENE_HUNGER        = genome.get_value(Genes.HUNGER_BIAS)
+        self.GENE_BABY_SIZE     = genome.get_value(Genes.BABY_SIZE)
         self.MAX_WASTE          = energy_to_mass(self.GENE_ENERGY / 3) # mass
 
         self.config             = config
@@ -33,6 +34,7 @@ class Creature(object):
         self.mass_waste         = 0 # mass
         self.do_eat_food        = False
         self.do_release_waste   = False
+        self.species            = ""
 
         # generic value used by other proceses
         self.color              = self.GENE_COLOR

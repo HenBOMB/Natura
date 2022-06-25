@@ -1,12 +1,17 @@
 import neat
 import natura
 import pickle
+import gzip
+import random
 
-from natura import Creature
+from natura import Creature, Genome
 from random import randint
 from neat.genes import DefaultConnectionGene, DefaultNodeGene
+from itertools import count
 
-def eval_genome(genome: natura.Genome, config: neat.Config, width, height):
+DEFAULT_DELTA = 0.04
+
+def eval_genome(genome: Genome, config: neat.Config, width: int, height: int, max_fitness: int):
     tick_count  = 0
     world       = natura.World(width, height)
     creature    = Creature(genome, config, (randint(-world.width, world.width), randint(-world.height, world.height)))
@@ -14,25 +19,123 @@ def eval_genome(genome: natura.Genome, config: neat.Config, width, height):
     world.spawn_food(250)
 
     while True:
-        if tick_count / 100 > 100: return tick_count / 100
+        if tick_count / 100 > max_fitness: return tick_count / 100
         world.tick()
-        creature.tick(world, 0.04)
+        creature.tick(world, DEFAULT_DELTA)
         if creature.health <= 0: return tick_count / 100
         tick_count += 1
 
-class Simulator():
+class NaturaSimulator():
+    '''
+    Mimic real evolution with this class\n
+    Creatures will pass on their genes through offsprings, only the toughest will survive!
+    '''
+    def __init__(self, world: natura.World, config: neat.Config):
+        self.world              = world
+        self.delta              = DEFAULT_DELTA
+        self.config             = config
+        self.indexer            = count(1)
+        self.population         = []
+        self.species            = {}
+        self.best_genomes       = {}
+        self.generation         = 0
+        self.generation_start   = 0
+
+    def spawn_species(self, name: str, pos: tuple, radius: int, count: int):
+        '''
+        Spawn a species at a give position.
+        '''
+
+        self.best_genomes[name] = None
+        self.species[name] = (pos, radius, count)
+
+    def run(self, tick_function = None, end_gen_function = None, generations: int = None, save_interval: int = 10, save_path: str = './natura-checkpoint-'):
+        while True:
+            self.spawn_pop()
+            tick_count = 0
+            
+            creature: Creature
+            for i, creature in enumerate(self.population):
+                creature.tick(self.world, DEFAULT_DELTA, self.population)
+
+                if creature.health <= 0:
+                    creature.genome.fitness = tick_count / 100
+                    if self.best_genomes[creature.species].fitness < creature.genome.fitness:
+                        self.best_genomes[creature.species] = creature.genome
+                    self.population.pop(i)
+
+                if tick_function: tick_function(self.population)
+
+                tick_count += 1
+
+            if end_gen_function: end_gen_function(self.generation)
+
+            self.generation += 1
+            self.generation_start += 1
+
+            if generations and generations == self.generation_start: 
+                break
+
+            if self.generation_start % save_interval == 0:
+                self.save(save_path)
+    
+    def save(self, path):
+        filename = f'{path}{self.generation}'
+        print("Saving checkpoint to {0}".format(filename))
+
+        with gzip.open(filename, 'w', compresslevel=5) as f:
+            data = (self.generation, self.config, self.species, self.best_genomes, random.getstate())
+            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    @staticmethod
+    def load(world, path):
+        with gzip.open(path) as f:
+            generation, config, species, best_genomes, state = pickle.load(f)
+            random.setstate(state)
+            sim = NaturaSimulator(world, config)
+            sim.generation = generation
+            sim.species = species
+            sim.best_genomes = best_genomes
+            return sim
+
+    def spawn_pop(self):
+        self.population = []
+
+        for key in self.species:
+            pos, radius, count = self.species[key]
+
+            for _ in range(count):
+                k = next(self.indexer)
+                g = natura.Genome(k)
+                g.configure_new(self.config.genome_config)
+                if self.best_genomes[key]:
+                    g.nodes = self.best_genomes[key].nodes
+                    g.connections = self.best_genomes[key].connections
+                c = Creature(g, self.config, (randint(pos[0]-radius, pos[0]+radius), randint(pos[1]-radius, pos[1]+radius)))
+                c.species = key
+                self.population.append(c)
+    
+class NeatSimulator():
+    '''
+    This does not mimic real evolution\n
+    Tince there is no natural reproduction going on\n
+    This does not allow generations to pass on their genes to their offsprings and go maybe extinct or not
+    '''
     def __init__(self, world: natura.World):
         self.world              = world
-        self.delta              = 0.04
+        self.delta              = DEFAULT_DELTA
         self.pop                = None
     
+    def run(self, fitness_function, n = None):
+        self.pop.run(fitness_function, n)
+
     def start(self, save_interval = 100, generations: int = None, tick_function = None, end_gen_function = None, network_path: str = None):
         self.tick_function      = tick_function
         self.end_gen_function   = end_gen_function
 
         if not self.pop:
             config = neat.Config(
-                natura.Genome, neat.DefaultReproduction,
+                Genome, neat.DefaultReproduction,
                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
                 "./neat-config"
             )
@@ -50,7 +153,7 @@ class Simulator():
     def start_parallel(self, save_interval = 100, network_path: str = None):
         if not self.pop:
             config = neat.Config(
-                natura.Genome, neat.DefaultReproduction,
+                Genome, neat.DefaultReproduction,
                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
                 "./neat-config"
             )
@@ -67,7 +170,7 @@ class Simulator():
         with open(path, 'rb') as f:
             inputs, hidden, outputs, connections = pickle.load(f)
 
-            genome: natura.Genome
+            genome: Genome
             for genome in self.pop.population:
                 self.pop.population[genome].nodes       = {}
                 self.pop.population[genome].connections = {}
@@ -117,4 +220,4 @@ class Simulator():
                         return
 
             tick_count += 1
-            if self.tick_function: self.delta = self.tick_function(population) or 0.04
+            if self.tick_function: self.delta = self.tick_function(population) or DEFAULT_DELTA

@@ -6,7 +6,7 @@ from natura.simulator import eval_genome as ev
 world = natura.World(1500, 1500)
 
 def eval_genome(genome, config):
-    return ev(genome, config, world.width, world.height)
+    return ev(genome, config, world.width, world.height, 300)
 
 if __name__ == '__main__':
     import argutil
@@ -20,11 +20,10 @@ if __name__ == '__main__':
         import sys
         sys.exit()
 
-
-    simulator       = natura.Simulator(world)
+    simulator       = natura.NeatSimulator(world)
     checkpoint      = argutil.get_arg("cp", None)
-    interval        = argutil.get_arg("int", 50)
-    workers         = argutil.get_arg("work", multiprocessing.cpu_count())
+    interval        = int(argutil.get_arg("int", 50))
+    workers         = int(argutil.get_arg("work", multiprocessing.cpu_count()))
 
     if checkpoint:
         simulator.load_checkpoint(checkpoint)
@@ -33,4 +32,4 @@ if __name__ == '__main__':
 
     pe = neat.ParallelEvaluator(workers, eval_genome)
     
-    simulator.pop.run(pe.evaluate)
+    simulator.run(pe.evaluate)

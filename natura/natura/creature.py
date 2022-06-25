@@ -19,6 +19,7 @@ class Creature(object):
         self.GENE_HUNGER        = genome.get_value(Genes.HUNGER_BIAS)
         self.MAX_WASTE          = energy_to_mass(self.GENE_ENERGY / 3) # mass
 
+        self.config             = config
         self.genome             = genome
         self.network            = neat.nn.FeedForwardNetwork.create(genome, config)
         self.pos                = start_pos

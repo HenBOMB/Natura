@@ -39,16 +39,17 @@ IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
 DRAW_NETWORK        = False
 DRAW_STATS          = False
 QUIT                = False
-ONLY_SIMULATE       = False
+DRAW_SIMULATION     = True
+DRAGGING            = False
 
 COLOR_BACKGROUND    = (0, 0, 16)
 COLOR_HIGHLIGHT     = (COLOR_BACKGROUND[0], COLOR_BACKGROUND[1], COLOR_BACKGROUND[2] * 4)
 COLOR_WHITE         = (255, 255, 255)
 
-# Statistics
-GENERATION = 0
-MAX_FITNESS = 0
-MAX_FITNESS_ARR = [0]
+CLICKED_CREATURE    = 0
+GENERATION          = 0
+MAX_FITNESS         = 0
+AVR_FITNESS         = []
 
 def draw_text(txt: str, pos: tuple, color = COLOR_WHITE):
     CAMERA.screen.blit(TEXT_FONT.render(str(txt), True, COLOR_WHITE), pos)
@@ -84,10 +85,10 @@ def draw_stats(pop_count: int):
     surf = pygame.Surface((200, 85), pygame.SRCALPHA)
     surf.fill((0, 0, 0, 200))
     CAMERA.screen.blit(surf, (0, 0))
-
+    l = len(AVR_FITNESS)
     draw_text(f"Generation: {GENERATION}", (0, 0))
-    draw_text(f"Max Fitness: {MAX_FITNESS_ARR[len(MAX_FITNESS_ARR)-1]}", (0, 20))
-    draw_text(f"Avr Fitness: {sum(MAX_FITNESS_ARR)/len(MAX_FITNESS_ARR)}", (0, 40))
+    draw_text(f"Max Fitness: {MAX_FITNESS}", (0, 20))
+    draw_text(f"Avr Fitness: {sum(AVR_FITNESS)/l if l != 0 else 0}", (0, 40))
     draw_text(f"Pop count: {pop_count}", (0, 60))
 
 def draw_creature(c: Creature, highlight: bool = False):
@@ -109,23 +110,97 @@ def draw_world():
 
 def draw_static():
     CAMERA.clear_screen()
+    l = len(AVR_FITNESS)
     draw_text(f"Generation: {GENERATION}", (0, 0))
-    draw_text(f"Max Fitness: {MAX_FITNESS_ARR[len(MAX_FITNESS_ARR)-1]}", (0, 20))
-    draw_text(f"Avr Fitness: {sum(MAX_FITNESS_ARR)/len(MAX_FITNESS_ARR)}", (0, 40))
+    draw_text(f"Max Fitness: {MAX_FITNESS}", (0, 20))
+    draw_text(f"Avr Fitness: {(sum(AVR_FITNESS)/len(AVR_FITNESS) if l > 0 else 0)}", (0, 40))
     draw_text(f"Press 'Enter' to resume viewing the realtime simulation", (0, 80))
     pygame.display.update()
 
 # could implement parallelism into this to speed it up, obviously not drawing anything, but like before!
 # https://github.com/HenBOMB/Natura/commit/e10530add790470874891472f48d0c5bee916e23#diff-852f425cb274d4895ce21fa82f7075101cc8e8bcd94d000838c57fc5241afa5a
 
+def start_gen(generation: int, best_genome: Genome):
+    global GENERATION, MAX_FITNESS
+    MAX_FITNESS = best_genome.fitness
+    AVR_FITNESS.append(MAX_FITNESS)
+    if len(AVR_FITNESS) == 5: AVR_FITNESS.pop(0)
+    GENERATION  = generation
+    if not DRAW_SIMULATION: draw_static()
+
 def tick(population: list):
+    global DRAW_NETWORK, DRAW_STATS, QUIT, DRAW_SIMULATION, GENERATION, MAX_FITNESS, DRAGGING, CLICKED_CREATURE
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        elif event.type == pygame.WINDOWMINIMIZED:
+            print("WARNING! Simulation Paused due to pygame enabled and window minimized")
+
+        elif event.type == pygame.MOUSEWHEEL:
+            CAMERA.zoom(-event.y)
+
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            DRAGGING = True
+            CAMERA.set_pos(pygame.mouse.get_pos())
+
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            DRAGGING = False
+            creature: Creature
+
+            for i, creature in enumerate(population):
+                d = util.dist(CAMERA.fix_pos(creature.pos), pygame.mouse.get_pos())
+                if d < CAMERA.fix_scale(creature.size_px*2):
+                    CLICKED_CREATURE = i
+                    break
+
+        elif event.type == pygame.MOUSEMOTION and DRAGGING:
+            if util.dist(CAMERA.cam_pos, pygame.mouse.get_pos()) > 5:
+                CAMERA.pan_camera(pygame.mouse.get_pos())
+
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_n:
+                DRAW_NETWORK = not DRAW_NETWORK
+            elif event.key == pygame.K_s:
+                DRAW_STATS = not DRAW_STATS
+            elif event.key == pygame.K_RETURN:
+                DRAW_SIMULATION = not DRAW_SIMULATION
+                draw_static()
+            elif event.key == pygame.K_f:
+                try: CAMERA.set_global_pos(population[CLICKED_CREATURE].pos)
+                except: pass
+
+    if not DRAW_SIMULATION: return None
+
+    pop_l = len(population)
+
+    if CLICKED_CREATURE >= pop_l: 
+        CLICKED_CREATURE = randint(0, pop_l-1)
+
     CAMERA.clear_screen()
     CAMERA.draw_rect(COLOR_BACKGROUND, (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
     draw_world()
-    for creature in population: draw_creature(creature)
+
+    for i, creature in enumerate(population):
+        if i != CLICKED_CREATURE: 
+            draw_creature(creature)
+            continue
+
+        draw_creature(creature, True)
+        if DRAW_NETWORK:
+            nndraw = NN(creature.config, creature.genome, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
+            nndraw.update_inputs(["" for i in range(0, 15)])
+            nndraw.update_outputs(["" for i in range(0, 5)])
+            nndraw.draw(CAMERA.screen)
+        if DRAW_STATS:
+            draw_properties(creature)
+
+    draw_stats(pop_l)
     CAMERA.tick(FPS)
     return CAMERA.delta
 
-simulator = Simulator(WORLD, tick)
-simulator.load('./saves/gen-719')
-simulator.start()
+simulator = Simulator(WORLD, tick, start_gen)
+# simulator.load('./saves/gen-719')
+simulator.start(30)

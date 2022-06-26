@@ -12,63 +12,94 @@ from neat.graphs import creates_cycle
 # TODO: Add nature laws, for eg: baby size relative to parent must not be half the parent's size
 # basically all creature inputs and food color
 # TODO: This is temporary
-allowed_inputs      = [-10, -11, -12]
+allowed_inputs      = [-4, -11, -12, -13]
 
 class Genes(Enum):
-    ENERGY          = "a"
+    ENERGY              = "aa"
     '''
     How much energy the creature has at its disposal
+    `Value: 0-?`
     '''
 
-    HEALTH          = "b"
+    HEALTH              = "ab"
     '''
     How much health the creature has
+    `Value: 0-?`
     '''
 
-    SPEED           = "c"
+    SPEED               = "ac"
     '''
-    How fast in meters the creature moves per second (m/s)
-    '''
-
-    VIEW_RANGE      = "d"
-    '''
-    How far in meters the creature can detect food or other creatures
+    How fast the creature moves per second (m/s)
+    `Value: 0m-?m`
     '''
 
-    COLOR           = "e"
+    VIEW_RANGE          = "ad"
+    '''
+    How far the creature can detect food or other creatures
+    `Value: 0-? (meters)`
+    '''
+
+    COLOR               = "ae"
     '''
     The creature's skin color in 0-255 range
+    `Value: (0-255, 0-255, 0-255)`
     '''
 
-    FOV             = "f"
+    FOV                 = "af"
     '''
     The field of view in which the creature can detect food or other creatures
+    `Value: ?-? (degrees)`
     '''
 
-    HUNGER_BIAS     = "g"
+    HUNGER_BIAS         = "ag"
     '''
     The 0-1 ratio in which the creature will start to get hungry\n
     `hungriness = energy / (ENERGY * HUNGER_BIAS) if energy / ENERGY < HUNGER_BIAS else 0`
+    `Value: 0-1`
     '''
 
-    BABY_SIZE       = "h"
+    REPRODUCTION_URGE   = "ba"
     '''
-    The 0.2-1 ratio of the creature's baby.\n 
-    The egg size will be 1/3 of the parent's size multiplied by this
+    The amount of reproduction urge to add
+    `Value: 0.001-1 (seconds)`
     '''
 
-    MUTATE_POWER    = "aa"
+    MATURITY_LENGTH     = "ya"
+    '''
+    How long till the creature reaches adult
+    `Value: 0-max (seconds)`
+    '''
+
+    MATURITY_RATE       = "yb"
+    '''
+    How fast the creature matures from baby to adult
+    `Value: 0-max (seconds)`
+    ''' 
+
+    BABY_MATURITY_LENGTH= "yc"
+    '''
+    At what stage does the baby get out of the egg
+    `Value: 0-1 (%)`
+    '''
+
+    BABY_SIZE           = "bb"
+    '''
+    How big the baby egg will be
+    `Value: 0.001-max (meters)`
+    '''
+
+    MUTATE_POWER        = "xa"
     '''
     The mutation power\n
     `value = value + random.gauss(0, MUTATE_POWER)`
     '''
     
-    MUTATE_RATE     = "ab"
+    MUTATE_RATE         = "xb"
     '''
     Change for a gene to get mutated
     '''
 
-    REPLACE_RATE    = "ac"
+    REPLACE_RATE        = "xc"
     '''
     The chance that a gene gets completely replaced with a new random value
     If `MUTATE_RATE` fails to mutate a gene, then the replace rate will be: `MUTATE_RATE + REPLACE_RATE`
@@ -120,18 +151,22 @@ class Genome(neat.DefaultGenome):
         super().__init__(key)
         self.genes = {}
         if skip: return
-        self.genes[Genes.VIEW_RANGE]    = Gene(3, 6, 0, 10, Gene.TYPE_INT) # 5
-        self.genes[Genes.ENERGY]        = Gene(15, 30, type=Gene.TYPE_INT) # 25 
-        self.genes[Genes.HEALTH]        = Gene(10, 50, type=Gene.TYPE_INT) #100
-        self.genes[Genes.SPEED]         = Gene(0.1, 2, 0) # 1
-        self.genes[Genes.FOV]           = Gene(20, 50, 100) # 45
-        self.genes[Genes.COLOR]         = Gene((20, 20, 20), (210, 210, 210), 0, 255, Gene.TYPE_TUPLE)
-        self.genes[Genes.HUNGER_BIAS]   = Gene(.4, .8, .1, 1) # .5
-        self.genes[Genes.BABY_SIZE]     = Gene(.2, 1, .2, 1) # .5
+        self.genes[Genes.ENERGY]            = Gene(15, 30, type=Gene.TYPE_INT) 
+        self.genes[Genes.HEALTH]            = Gene(10, 50, type=Gene.TYPE_INT)
+        self.genes[Genes.SPEED]             = Gene(0.1, 2, 0)
+        self.genes[Genes.FOV]               = Gene(20, 50, 100)
+        self.genes[Genes.VIEW_RANGE]        = Gene(3, 6, 0, 10, Gene.TYPE_INT)
+        self.genes[Genes.COLOR]             = Gene((20, 20, 20), (210, 210, 210), 0, 255, Gene.TYPE_TUPLE)
+        self.genes[Genes.HUNGER_BIAS]       = Gene(.4,  .8,   .1, 1)
+        self.genes[Genes.REPRODUCTION_URGE] = Gene(.1,   1,    0, 2)
+        self.genes[Genes.MATURITY_LENGTH]   = Gene(3, 5)
+        self.genes[Genes.MATURITY_RATE]     = Gene(1, 2)
+        self.genes[Genes.BABY_SIZE]         = Gene(.2, .8, .001)
+        self.genes[Genes.BABY_MATURITY_LENGTH] = Gene(.4, 1, max=1)
 
-        self.genes[Genes.MUTATE_POWER]  = Gene(.1, .2, .1, 1) # .2
-        self.genes[Genes.MUTATE_RATE]   = Gene(.1, .2, .1, 1) # .3
-        self.genes[Genes.REPLACE_RATE]  = Gene(.1, .2, .1, 1) # .1
+        self.genes[Genes.MUTATE_POWER]      = Gene(.1, .2, .1, 1)
+        self.genes[Genes.MUTATE_RATE]       = Gene(.1, .2, .1, 1)
+        self.genes[Genes.REPLACE_RATE]      = Gene(.1, .2, .1, 1)
 
     def configure_crossover(self, genome1, genome2, config):
         super().configure_crossover(genome1, genome2, config)
@@ -149,8 +184,6 @@ class Genome(neat.DefaultGenome):
         for key in self.genes.keys():
             if key == Genes.MUTATE_POWER: break
             self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
-
-    
 
     def mutate_add_connection(self, config):
         possible_outputs = list(iterkeys(self.nodes))
@@ -174,7 +207,7 @@ class Genome(neat.DefaultGenome):
         cg = self.create_connection(config, in_node, out_node)
         self.connections[cg.key] = cg
 
-    def get_value(self, key: str): 
+    def get_value(self, key: str) -> float | int | tuple: 
         return self.genes[key].value
 
     def set_value(self, gene: str, value):

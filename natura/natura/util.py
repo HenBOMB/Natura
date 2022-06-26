@@ -61,11 +61,5 @@ def clamp_vec(v1: tuple, min: float, max: float):
 def norm(v: tuple):
     return math.sqrt(v[0]*v[0]+v[1]*v[1])
 
-# 50 energy per mass kg
-ENERGY_MASS_CONSTANT = 20
-
-def energy_to_mass(energy: float):
-    return energy / ENERGY_MASS_CONSTANT
-
-def mass_to_energy(energy: float):
-    return energy * ENERGY_MASS_CONSTANT
+def circle_to_mass(radius: float, density_constant: float = .985):
+    return (math.pi * (radius * radius)) * density_constant

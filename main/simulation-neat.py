@@ -18,10 +18,11 @@ pygame.font.init()
 pygame.display.set_caption("Natura - Life Evolution")
 
 from natura import Creature, World, util, Genome, NeatSimulator
+from natura.food import Food
 from nndraw import NN
 from camera import Camera
-from random import randint, uniform, random
-from math   import radians, sin, cos
+from random import randint
+from math import radians, sin, cos
 
 SCREEN_WIDTH        = 1600
 SCREEN_HEIGHT       = 1000
@@ -103,8 +104,10 @@ def draw_creature(c: Creature, highlight: bool = False):
         CAMERA.draw_circle((200, 200, 200), c.pos, c.size_px+5, 1)
 
 def draw_world():
+    food: Food
     for i, food in enumerate(WORLD.food):
-        CAMERA.draw_image(IMAGE_FOOD, (food.pos[0] - food.size / 2, food.pos[1] - food.size / 2), food.size * 2.5)
+        r = util.meter_to_pixel(food.radius)
+        CAMERA.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r)
 
 def draw_static():
     CAMERA.clear_screen()

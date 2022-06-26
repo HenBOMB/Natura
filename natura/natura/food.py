@@ -1,44 +1,35 @@
-from random import random
-from natura.util import energy_to_mass, mass_to_energy
+from random import uniform
+from natura.util import circle_to_mass
 
-TYPE_PLANT = 0
-TYPE_MEAT = 1
+TYPE_PLANT      = 0
+TYPE_MEAT       = TYPE_PLANT + 1
+TYPE_POOP       = TYPE_MEAT + 1
 
-PLANT_COLOR = (100, 255, 100)
-MEAT_COLOR = (255, 100, 100)
+PLANT_COLOR     = (100, 255, 100)
+MEAT_COLOR      = (170, 60, 59)
+POOP_COLOR      = (115, 74, 22)
 
-PLANT_ENERGY_MULT = 1
-MEAT_ENERGY_MULT = 2.5
+PLANT_ENERGY    = 0.5
+MEAT_ENERGY     = 1.5
+POOP_ENERGY     = 0
 
 class Food():
-    def __init__(self, pos: tuple, energy: float = 0, type: int = TYPE_PLANT):
-        self.mult = PLANT_ENERGY_MULT if type == TYPE_PLANT else MEAT_ENERGY_MULT
-        self.color = PLANT_COLOR if type == TYPE_PLANT else MEAT_COLOR
-        self.pos = pos
-        self.energy = energy * self.mult
-        self.type = type
-        self.mass = 0
-        self.size = 0
+    def __init__(self, pos: tuple, type: int = TYPE_PLANT):
+        self.color  = PLANT_COLOR  if type == TYPE_PLANT else MEAT_COLOR  if type == TYPE_MEAT else POOP_COLOR
+        self.pos    = pos
+        self.radius = uniform(.3, 1)
         self.update()
     
-    # TODO: get rid of mass_to_energy and just use a random size
-    # have a sort of efficiency variable for each food, to convert mass to energy and vice versa
-
-    def eat(self, mass: float):
+    def eat(self, radius: float) -> float:
         '''
-        Take a bite out of the food, returns the energy consumed
+        Take a bite out of the food, returns the energy consumed\n
+        radius is in meters
         '''
-        e = self.energy
-        self.mass = max(0, self.mass - mass)
-        self.energy = mass_to_energy(self.mass) * self.mult
+        old_energy = self.energy
+        self.radius -= radius
         self.update()
-        return e
-
-    # used only once
-    def energize(self):
-        self.energy = (30 + random() * 30) * self.mult
-        self.update()
+        return old_energy - self.energy
 
     def update(self):
-        self.mass = energy_to_mass(self.energy / self.mult)
-        self.size = 0.2 + (self.energy / 60) * 10
+        div         = PLANT_ENERGY if type == TYPE_PLANT else MEAT_ENERGY if type == TYPE_MEAT else POOP_ENERGY
+        self.energy = circle_to_mass(self.radius) * div

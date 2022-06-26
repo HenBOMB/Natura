@@ -14,14 +14,14 @@ DEFAULT_DELTA = 0.04
 def eval_genome(genome: Genome, config: neat.Config, width: int, height: int, max_fitness: int):
     tick_count  = 0
     world       = natura.World(width, height)
-    creature    = Creature(genome, config, (randint(-world.width, world.width), randint(-world.height, world.height)))
+    creature    = Creature(genome, config, (randint(-world.width, world.width), randint(-world.height, world.height)), world)
 
     world.spawn_food(250)
 
     while True:
         if tick_count / 100 > max_fitness: return tick_count / 100
         world.tick()
-        creature.tick(world, DEFAULT_DELTA)
+        creature.tick(DEFAULT_DELTA)
         if creature.health <= 0: return tick_count / 100
         tick_count += 1
 
@@ -74,7 +74,7 @@ class NaturaSimulator():
 
             creature: Creature
             for i, creature in enumerate(self.population):
-                creature.tick(self.world, DEFAULT_DELTA, self.population)
+                creature.tick(DEFAULT_DELTA, self.population)
 
                 if creature.health > 0: continue
 
@@ -134,7 +134,8 @@ class NaturaSimulator():
                 genome.mutate(self.config.genome_config)
                 genome.set_genes(genes)
 
-                c = Creature(genome, self.config, (randint(pos[0]-radius, pos[0]+radius), randint(pos[1]-radius, pos[1]+radius)))
+                c = Creature(genome, self.config, 
+                    (randint(pos[0]-radius, pos[0]+radius), randint(pos[1]-radius, pos[1]+radius)), self.world)
                 c.species = key
                 self.population.append(c)
     
@@ -223,14 +224,14 @@ class NeatSimulator():
 
         for genome_id, genome in genomes:
             genome.fitness = 0
-            population.append(Creature(genome, config, (randint(-self.world.width, self.world.width), randint(-self.world.height, self.world.height))))
+            population.append(Creature(genome, config, 
+                (randint(-self.world.width, self.world.width), randint(-self.world.height, self.world.height)), self.world))
 
         while True:
             self.world.tick()
 
-            creature: Creature
             for i, creature in enumerate(population):
-                creature.tick(self.world, self.delta, population)
+                creature.tick(self.delta, population)
                 if creature.health <= 0:
                     creature.genome.fitness = tick_count / 100
 

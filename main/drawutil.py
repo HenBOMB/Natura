@@ -27,6 +27,7 @@ class DrawUtil(object):
             self.camera.draw_circle((0,0,0), (
                     c.pos[0] + cos(c.angle-rad) * r, 
                     c.pos[1] + sin(c.angle-rad) * r), r / 4)
+
             self.camera.draw_circle((0,0,0), (
                     c.pos[0] + cos(c.angle+rad) * r, 
                     c.pos[1] + sin(c.angle+rad) * r), r / 4)
@@ -70,7 +71,7 @@ class DrawUtil(object):
     def world(self):
         for food in self.w.food:
             r = meter_to_pixel(food.radius)
-            self.camera.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r)
+            self.camera.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r * 2)
 
     def text(self, txt: str, pos: tuple, color = COLOR_WHITE, font = None):
         font = font or pygame.font.SysFont("comicsans", 15)

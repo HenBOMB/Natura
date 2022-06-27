@@ -18,7 +18,6 @@ class Food():
         self.color  = PLANT_COLOR  if type == TYPE_PLANT else MEAT_COLOR  if type == TYPE_MEAT else POOP_COLOR
         self.pos    = pos
         self.radius = uniform(.3, 1)
-        print(self.radius)
         self.update()
     
     def eat(self, radius: float) -> float:
@@ -27,8 +26,7 @@ class Food():
         radius is in meters
         '''
         old_energy = self.energy
-        self.radius -= radius
-        self.radius = max(self.radius, 0)
+        self.radius = max(self.radius - radius, 0)
         self.update()
         return old_energy - self.energy
 

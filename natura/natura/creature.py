@@ -253,7 +253,7 @@ class Creature(object):
         _go_eat_food        = True#out[4] > .5
         _go_reproduce       = _out[5] > .5
 
-        if _go_reproduce and pop:
+        if _go_reproduce and pop and self.energy > self.min_energy and self.reproduction_urge == 1:
             self.reproduction_urge = 0
             self.lay_egg(pop)
 
@@ -346,6 +346,8 @@ class Creature(object):
                 m = pixel_to_meter(self.size_px)
                 if _food_dist - m < food.radius:
                     self.gain_energy(food.eat(m/3))
+                    if food.energy == 0:
+                        self.world.food.pop(_food_index)
 
         return (inputs, _out)
     

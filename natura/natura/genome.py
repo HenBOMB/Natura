@@ -12,7 +12,8 @@ from neat.graphs import creates_cycle
 # TODO: Add nature laws, for eg: baby size relative to parent must not be half the parent's size
 # basically all creature inputs and food color
 # TODO: This is temporary
-allowed_inputs      = [-4, -11, -12, -13]
+allowed_inputs      = [-11, -12, -13]
+allowed_outputs     = [1, 2, 3, 4]
 
 class Genes(Enum):
     ENERGY              = "aa"
@@ -110,7 +111,7 @@ class Gene(object):
     TYPE_INT    = 1
     TYPE_TUPLE  = 2
 
-    def __init__(self, init_min, init_max, min = 0, max = 99999, type = TYPE_FLOAT):
+    def __init__(self, init_min, init_max, min = 0.00001, max = 99999, type = TYPE_FLOAT):
         self.value = None
         self.min = min
         self.max = max
@@ -187,6 +188,8 @@ class Genome(neat.DefaultGenome):
 
     def mutate_add_connection(self, config):
         possible_outputs = list(iterkeys(self.nodes))
+        possible_outputs.pop(4)
+        possible_outputs.pop(4)
         out_node = choice(possible_outputs)
 
         possible_inputs = possible_outputs + allowed_inputs#config.input_keys

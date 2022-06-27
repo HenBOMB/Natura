@@ -72,5 +72,6 @@ class DrawUtil(object):
             r = meter_to_pixel(food.radius)
             self.camera.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r)
 
-    def text(self, txt: str, pos: tuple, color = COLOR_WHITE, font = pygame.font.SysFont("comicsans", 15)):
+    def text(self, txt: str, pos: tuple, color = COLOR_WHITE, font = None):
+        font = font or pygame.font.SysFont("comicsans", 15)
         self.camera.screen.blit(font.render(str(txt), True, color), pos)

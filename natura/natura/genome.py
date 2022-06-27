@@ -161,8 +161,8 @@ class Genome(neat.DefaultGenome):
         self.genes[Genes.REPRODUCTION_URGE] = Gene(.1,   1,    0, 2)
         self.genes[Genes.MATURITY_LENGTH]   = Gene(3, 5)
         self.genes[Genes.MATURITY_RATE]     = Gene(1, 2)
-        self.genes[Genes.BABY_SIZE]         = Gene(.2, .8, .001)
-        self.genes[Genes.BABY_MATURITY_LENGTH] = Gene(.4, 1, max=1)
+        self.genes[Genes.BABY_SIZE]         = Gene(.4, .7, .001)
+        self.genes[Genes.BABY_MATURITY_LENGTH] = Gene(.2, .6, max=1)
 
         self.genes[Genes.MUTATE_POWER]      = Gene(.1, .2, .1, 1)
         self.genes[Genes.MUTATE_RATE]       = Gene(.1, .2, .1, 1)

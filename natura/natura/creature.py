@@ -112,21 +112,30 @@ class Creature(object):
         # generic values used by other proceses
         self.color              = self.GENE_COLOR
         self.species            = ""
+        self.consumption        = 0
 
     def mature(self, delta):
+        baby_maturity_length = self.GEN_MATURITY_LENGTH * self.GEN_BABY_MATURITY_LENGTH
+
         self.maturity += self.GEN_MATURITY_RATE * delta
         self.maturity = min(self.maturity, self.GEN_MATURITY_LENGTH)
 
-        p = self.maturity / self.GEN_MATURITY_LENGTH
+        perc = self.maturity / self.GEN_MATURITY_LENGTH
 
-        if p > .85:
+        if perc > .85 and not self.is_baby():
             self.GENE_REP_URGE = self.genome.get_value(Genes.REPRODUCTION_URGE)
 
-        self.size_px    = meter_to_pixel(lerp(self.min_size, self.max_size, p))
-        self.mass       = circle_to_mass(pixel_to_meter(self.size_px))
+        if self.is_baby():      
+            self.size_px = self.min_size
+        else:  
+            bby_perc = min(self.maturity / baby_maturity_length, baby_maturity_length)
+            self.size_px = lerp(self.min_size, self.max_size, (self.maturity - bby_perc) / (self.GEN_MATURITY_LENGTH - bby_perc))
+
+        self.mass       = circle_to_mass(self.size_px)
+        self.size_px    = meter_to_pixel(self.size_px)
         self.weight     = self.mass * self.world.gravity
-        self.max_speed  = self.GENE_SPEED * p
-        self.max_health = self.GENE_HEALTH * p
+        self.max_speed  = self.GENE_SPEED * perc
+        self.max_health = self.GENE_HEALTH * perc
 
     def baby_mature(self):
         # this gene is an exception, because it'll only activate when mature enough
@@ -138,10 +147,12 @@ class Creature(object):
     
     def lay_egg(self, pop: list):
         genome = copy(self.genome)
-        genome.mutate()
+        # genome.mutate(self.config.genome_config)
         genome.mutate_genes()
         self.drain_energy(self.min_energy)
-        pop.append(Creature(genome, self.config, self.pos, self.world, True))
+        c = Creature(genome, self.config, self.pos, self.world, True)
+        c.species = self.species
+        pop.append(c)
 
     def tick(self, delta: float, pop: list = None):
         if self.dead:
@@ -149,7 +160,7 @@ class Creature(object):
 
         if self.maturity != self.GEN_MATURITY_LENGTH:
             self.mature(delta)
-            if self.maturity <= self.GEN_BABY_MATURITY_LENGTH * self.GEN_MATURITY_LENGTH:
+            if self.is_baby():
                 self.baby_mature()
                 return
 
@@ -314,8 +325,12 @@ class Creature(object):
                 max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle + math.pi) * meter_to_pixel(self.speed) * delta)))
 
         # https://journals.biologists.com/jeb/article/208/9/1717/9377/Body-size-energy-metabolism-and-lifespan
-        self.drain_energy(self.speed / 2 * self.mass * delta * .05)
-        self.drain_energy(self.mass * .05 * delta)
+        # speed cost
+        self.consumption = self.speed / 2 * self.mass * delta * .05
+        # metabolism
+        self.consumption += self.mass * .05 * delta
+
+        self.drain_energy(self.consumption)
 
         # maybe if the creature runs out of energy it can transform health -> energy
         # depending on how much it costs to regenerate health, could work out some constant for the conversion
@@ -326,10 +341,11 @@ class Creature(object):
             return (inputs, _out)
 
         if _go_eat_food:
-            food: Food = self.world.food[_food_index]
-            m = pixel_to_meter(self.size_px)
-            if _food_dist - m < food.radius:
-                self.gain_energy(food.eat(m/3))
+            if len(self.world.food) > 0:
+                food: Food = self.world.food[_food_index]
+                m = pixel_to_meter(self.size_px)
+                if _food_dist - m < food.radius:
+                    self.gain_energy(food.eat(m/3))
 
         return (inputs, _out)
     
@@ -368,3 +384,6 @@ class Creature(object):
     def drain_energy(self, energy: float):
         self.energy -= energy
         self.energy = clamp(self.energy, 0, self.max_energy)
+
+    def is_baby(self) -> bool:
+        return self.maturity <= self.GEN_BABY_MATURITY_LENGTH * self.GEN_MATURITY_LENGTH

@@ -20,6 +20,7 @@ pygame.display.set_caption("Natura - Life Evolution")
 
 from natura import Creature, World, util, Genome, NaturaSimulator
 from natura.food import Food
+from natura.util import round2, percent, pixel_to_meter
 from nndraw import NN
 from camera import Camera
 from random import randint
@@ -29,7 +30,7 @@ SCREEN_WIDTH        = 1600
 SCREEN_HEIGHT       = 1000
 WORLD_WIDTH         = 1500
 WORLD_HEIGHT        = 1500
-FPS                 = 60
+FPS                 = 30
 
 TEXT_FONT           = pygame.font.SysFont("comicsans", 15)
 WORLD               = World(WORLD_WIDTH, WORLD_HEIGHT)
@@ -38,6 +39,7 @@ IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
 
 DRAW_NETWORK        = False
 DRAW_STATS          = False
+DRAW_PROPERTIES     = True
 DRAW_SIMULATION     = True
 DRAGGING            = False
 FOLLOW_CREATURE     = False
@@ -53,31 +55,32 @@ def draw_text(txt: str, pos: tuple, color = COLOR_WHITE):
     CAMERA.screen.blit(TEXT_FONT.render(str(txt), True, COLOR_WHITE), pos)
 
 def draw_properties(creature: Creature):
-    width, height = (300, 100)
+    d = {}
+    d["Health"]     = f"{percent(creature.health, creature.max_health)}% / {int(creature.max_health)}"
+    d["Energy"]     = f"{percent(creature.energy, creature.max_energy)}% / {round2(creature.max_energy)}"
+    d["Speed"]      = f"{percent(creature.speed, creature.max_speed)}% / {round2(creature.GENE_SPEED)}"
+    d["Hunger"]     = round2(creature.GENE_HUNGER)
+    d["Size"]       = f"{round2(pixel_to_meter(creature.size_px))} / {round2(creature.max_size)}"
+    d["Fov"]        = creature.GENE_FOV
+    d["View Range"] = creature.GENE_VIEW_RANGE
+
+    spacing = 15
+    width, height = (300, len(d)*spacing+spacing/2)
     surf = pygame.Surface((width, height), pygame.SRCALPHA)
     surf.fill((100, 100, 100, 100))
     CAMERA.screen.blit(surf, (SCREEN_WIDTH - width, 0))
 
     def draw_txt(txt, i):
         text = TEXT_FONT.render(str(txt), True, COLOR_WHITE)
-        CAMERA.screen.blit(text, (SCREEN_WIDTH - width, 7.5 * 2 * i))
+        CAMERA.screen.blit(text, (SCREEN_WIDTH - width, spacing * i))
 
     def draw_v_txt(txt, i):
         text = TEXT_FONT.render(str(txt), True, COLOR_WHITE)
-        CAMERA.screen.blit(text, (SCREEN_WIDTH - width + 80, 7.5 * 2 * i))
-
-    draw_txt("Fov", 0)
-    draw_v_txt(creature.GENE_FOV, 0)
-    draw_txt("Energy", 1)
-    draw_v_txt(f"{util.percent(creature.energy, creature.GENE_ENERGY)}% / {creature.GENE_ENERGY}", 1)
-    draw_txt("Health", 2)
-    draw_v_txt(f"{util.percent(creature.health, creature.GENE_HEALTH)}% / {creature.GENE_HEALTH}", 2)
-    draw_txt("Speed", 3)
-    draw_v_txt(creature.GENE_SPEED, 3)
-    draw_txt("View Range", 4)
-    draw_v_txt(creature.GENE_VIEW_RANGE, 4)
-    draw_txt("Hunger", 5)
-    draw_v_txt(creature.GENE_HUNGER, 5)
+        CAMERA.screen.blit(text, (SCREEN_WIDTH - width + 80, spacing * i))
+    
+    for i, k in enumerate(d):
+        draw_txt(k, i)
+        draw_v_txt(d[k], i)
 
 def draw_stats(pop_count: int):
     surf = pygame.Surface((200, 85), pygame.SRCALPHA)
@@ -101,7 +104,7 @@ def draw_creature(c: Creature, highlight: bool = False):
 
 def draw_world():
     food: Food
-    for i, food in enumerate(WORLD.food):
+    for food in WORLD.food:
         r = util.meter_to_pixel(food.radius)
         CAMERA.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r)
 
@@ -117,7 +120,7 @@ def end_gen(generation: int):
     if not DRAW_SIMULATION: draw_static()
 
 def tick(population: list):
-    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE, FOLLOW_CREATURE
+    global DRAW_NETWORK, DRAW_STATS, DRAW_SIMULATION, GENERATION, DRAGGING, CLICKED_CREATURE, FOLLOW_CREATURE, DRAW_PROPERTIES
 
     if not DRAW_SIMULATION: 
         for event in pygame.event.get():
@@ -194,7 +197,7 @@ def tick(population: list):
             nndraw.update_inputs(["" for i in range(0, 15)])
             nndraw.update_outputs(["" for i in range(0, 5)])
             nndraw.draw(CAMERA.screen)
-        if DRAW_STATS:
+        if DRAW_PROPERTIES:
             draw_properties(creature)
 
     if FOLLOW_CREATURE:
@@ -216,7 +219,7 @@ else:
         "./neat-config"
     )
     simulator.init(config)
-    simulator.spawn_species("uwu", (0, 0), WORLD_WIDTH/2, 50, (255, 255, 100))
+    simulator.spawn_species("uwu", (0, 0), WORLD_WIDTH/2, 1, (255, 255, 100))
 
 GENERATION = simulator.generation
 

@@ -154,7 +154,7 @@ class Genome(neat.DefaultGenome):
         self.genes[Genes.ENERGY]            = Gene(15, 30, type=Gene.TYPE_INT) 
         self.genes[Genes.HEALTH]            = Gene(10, 50, type=Gene.TYPE_INT)
         self.genes[Genes.SPEED]             = Gene(0.1, 2, 0)
-        self.genes[Genes.FOV]               = Gene(20, 50, 100)
+        self.genes[Genes.FOV]               = Gene(20, 50, 100, type=Gene.TYPE_INT)
         self.genes[Genes.VIEW_RANGE]        = Gene(3, 6, 0, 10, Gene.TYPE_INT)
         self.genes[Genes.COLOR]             = Gene((20, 20, 20), (210, 210, 210), 0, 255, Gene.TYPE_TUPLE)
         self.genes[Genes.HUNGER_BIAS]       = Gene(.4,  .8,   .1, 1)

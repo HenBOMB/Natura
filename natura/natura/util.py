@@ -1,15 +1,15 @@
 import math
 import random
 
-# 1 pixel = 0.01 meters
-# 100 pixels = 1 meter
+# 1 pixel = 0.1 meters
+# 10 pixels = 1 meter
 
 def pixel_to_meter(pixels):
-    return pixels / 100
+    return pixels / 10
 
 def meter_to_pixel(meter):
-    return meter * 100
-
+    return meter * 10
+    
 def clamp(v: float, mi: float, mx: float):
     return max(mi, min(mx, v))
 
@@ -23,6 +23,9 @@ def rand_negpos(seed: float):
     random.seed(seed)
     return (random.random() - .5) * 2
 
+def round2(v):
+    return round(v*100)/100
+    
 def percent(a, b):
     if b == 0: return 0
     return round((a / b) * 100)

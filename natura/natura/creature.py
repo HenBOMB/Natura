@@ -17,7 +17,6 @@ class Creature(object):
         self.config             = config
         self.genome             = genome
         self.network            = neat.nn.FeedForwardNetwork.create(genome, config)
-        self.maturity           = genome.get_value(Genes.MATURITY_LENGTH) * int(is_baby)
         self.world              = world
 
         self.GENE_HEALTH        = genome.get_value(Genes.HEALTH)
@@ -31,6 +30,7 @@ class Creature(object):
         self.GEN_MATURITY_RATE          = genome.get_value(Genes.MATURITY_RATE)
         self.GEN_BABY_MATURITY_LENGTH   = genome.get_value(Genes.BABY_MATURITY_LENGTH)
 
+        self.maturity           = self.GEN_MATURITY_LENGTH * (1-int(is_baby))
         self.min_size           = genome.get_value(Genes.BABY_SIZE)
         '''
         BABY_SIZE = 1.2m
@@ -50,7 +50,7 @@ class Creature(object):
         1.2m (30s) --> ?m (60s)
         '''
         self.max_size           = self.min_size * (self.GEN_MATURITY_LENGTH / (self.GEN_MATURITY_LENGTH * self.GEN_BABY_MATURITY_LENGTH))
-        
+
         self.min_energy         = circle_to_mass(self.min_size) * .2 # 20%
         self.max_energy         = circle_to_mass(self.max_size) * .2 # 20%
         
@@ -65,9 +65,20 @@ class Creature(object):
 
         # this is nescessary because mature() will not run if 1
         # either way, if it did ran, it wouldn't change any of the values
+        self.energy             = self.max_energy
+        self.health             = self.max_health
         self.size_px            = meter_to_pixel(self.max_size)
         self.mass               = circle_to_mass(self.max_size)
         self.weight             = self.mass * self.world.gravity
+
+        # print(f'size        | {self.min_size}m -> {self.max_size}m')
+        # print(f'energy      | {self.min_energy} -> {self.max_energy}')
+        # print(f'mass        | {self.mass}')
+        # print(f'weight      | {self.weight}kg')
+        # print(f'speed       | {self.GENE_SPEED}m/s')
+        # print(f'consumption | {self.mass * .05}e/s')
+        # print(f'consumption | {self.GENE_SPEED / 2 * self.mass * .05}e/s')
+        # print(f'lifetime    | {self.max_energy/(self.mass * .05)}')
 
         # TODO: maybe combine this with fitness..????!
         # humans are programmed to love high calorie foods
@@ -120,7 +131,7 @@ class Creature(object):
     def baby_mature(self):
         # this gene is an exception, because it'll only activate when mature enough
         self.GENE_REP_URGE  = 0
-        # this is not really nescesasry cause when the baby stage ends, self.energy will be self.MIN_ENERGY regardless
+        # this is not really nescessary cause when the baby stage ends, self.energy will be self.MIN_ENERGY regardless
         # self.energy       = lerp(self.MIN_ENERGY, self.MAX_ENERGY, self.maturity / self.GEN_MATURITY_LENGTH)
         self.energy         = self.min_energy
         self.health         = self.max_health
@@ -303,8 +314,8 @@ class Creature(object):
                 max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle + math.pi) * meter_to_pixel(self.speed) * delta)))
 
         # https://journals.biologists.com/jeb/article/208/9/1717/9377/Body-size-energy-metabolism-and-lifespan
-        self.drain_energy(self.speed / 2 * self.mass * delta)
-        self.drain_energy(self.mass / 0.733 * delta) # metabolic rate 0.666 - 0.8
+        self.drain_energy(self.speed / 2 * self.mass * delta * .05)
+        self.drain_energy(self.mass * .05 * delta)
 
         # maybe if the creature runs out of energy it can transform health -> energy
         # depending on how much it costs to regenerate health, could work out some constant for the conversion
@@ -316,8 +327,9 @@ class Creature(object):
 
         if _go_eat_food:
             food: Food = self.world.food[_food_index]
-            if meter_to_pixel(_food_dist) - self.size_px < food.size:
-                self.gain_energy(food.eat(pixel_to_meter(self.size_px())))
+            m = pixel_to_meter(self.size_px)
+            if _food_dist - m < food.radius:
+                self.gain_energy(food.eat(m/3))
 
         return (inputs, _out)
     

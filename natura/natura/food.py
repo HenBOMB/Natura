@@ -27,6 +27,7 @@ class Food():
         '''
         old_energy = self.energy
         self.radius -= radius
+        self.radius = max(self.radius, 0)
         self.update()
         return old_energy - self.energy
 

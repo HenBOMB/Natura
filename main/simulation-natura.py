@@ -17,6 +17,7 @@ import drawutil
 pygame.init()
 pygame.font.init()
 pygame.display.set_caption("Natura - Life Evolution")
+pygame.display.set_icon(pygame.image.load('./assets/evolution.png'))
 
 from natura import Creature, World, util, NaturaNeatSimulator
 from nndraw import NN
@@ -32,8 +33,6 @@ FPS                 = 30
 TEXT_FONT           = pygame.font.SysFont("comicsans", 15)
 WORLD               = World(WORLD_WIDTH, WORLD_HEIGHT)
 CAMERA              = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
-IMAGE_FOOD          = pygame.image.load('./assets/food.png', 'food')
-IMAGE_EGG           = pygame.image.load('./assets/egg.png', 'food')
 
 DRAW_NETWORK        = True
 DRAW_STATS          = False
@@ -46,7 +45,7 @@ COLOR_BACKGROUND    = (0, 0, 16)
 COLOR_HIGHLIGHT     = (COLOR_BACKGROUND[0], COLOR_BACKGROUND[1], COLOR_BACKGROUND[2] * 4)
 COLOR_WHITE         = (255, 255, 255)
 
-CLICKED_CREATURE    = 0
+CLICKED_CREATURE    = None
 GENERATION          = 0
 draw                = drawutil.DrawUtil(CAMERA, WORLD)
 
@@ -87,9 +86,6 @@ def tick(population: list):
             pygame.quit()
             sys.exit()
 
-        elif event.type == pygame.WINDOWMINIMIZED:
-            print("WARNING! Simulation Paused due to pygame enabled and window minimized")
-
         elif event.type == pygame.MOUSEWHEEL:
             CAMERA.zoom(-event.y)
 
@@ -101,10 +97,10 @@ def tick(population: list):
             DRAGGING = False
             creature: Creature
 
-            for i, creature in enumerate(population):
+            for creature in population:
                 d = util.dist(CAMERA.fix_pos(creature.pos), pygame.mouse.get_pos())
                 if d < CAMERA.fix_scale(creature.size_px*2):
-                    CLICKED_CREATURE = i
+                    CLICKED_CREATURE = creature
                     break
 
         elif event.type == pygame.MOUSEMOTION and DRAGGING:
@@ -128,29 +124,29 @@ def tick(population: list):
 
     pop_l = len(population)
 
-    if CLICKED_CREATURE >= pop_l and pop_l != 0: 
-        CLICKED_CREATURE = randint(0, pop_l-1)
+    if not CLICKED_CREATURE or CLICKED_CREATURE.dead: 
+        CLICKED_CREATURE = population[randint(0, pop_l-1)]
 
     CAMERA.clear_screen()
     CAMERA.draw_rect(COLOR_BACKGROUND, (-WORLD_WIDTH, -WORLD_HEIGHT, WORLD_WIDTH*2, WORLD_HEIGHT*2))
     draw.world()
 
     for i, creature in enumerate(population):
-        if i != CLICKED_CREATURE: 
-            draw.creature(creature)
-            continue
+        draw.creature(creature)
+    
+    draw.creature_highlight(CLICKED_CREATURE)
 
-        draw.creature(creature, True)
-        if DRAW_NETWORK:
-            nndraw = NN(creature.config, creature.genome, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
-            nndraw.update_inputs(["" for i in range(0, 15)])
-            nndraw.update_outputs(["" for i in range(0, 5)])
-            nndraw.draw(CAMERA.screen)
-        if DRAW_PROPERTIES:
-            draw.creature_properties(creature)
+    if DRAW_NETWORK:
+        nndraw = NN(CLICKED_CREATURE.config, CLICKED_CREATURE.genome, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
+        nndraw.update_inputs(["" for i in range(0, 3)])
+        nndraw.update_outputs(["" for i in range(0, 4)])
+        nndraw.draw(CAMERA.screen)
+        
+    if DRAW_PROPERTIES:
+        draw.creature_properties(CLICKED_CREATURE)
 
     if FOLLOW_CREATURE:
-        try: CAMERA.set_global_pos(population[CLICKED_CREATURE].pos)
+        try: CAMERA.set_global_pos(CLICKED_CREATURE.pos)
         except: pass
 
     draw_stats(pop_l)
@@ -174,7 +170,7 @@ if cp:
 #     simulator.init(config)
 #     simulator.spawn_species("uwu", (0, 0), WORLD_WIDTH/2, 50, (255, 255, 100))
 
-simulator.run(argutil.get_arg("int", 10), None, tick, end_gen)
+simulator.run(argutil.get_arg("int", 30), None, tick, end_gen)
 
 GENERATION = simulator.pop.generation
 

@@ -4,7 +4,7 @@ import pygame
 from natura.util import percent, round2, pixel_to_meter, sub_vec, meter_to_pixel
 from math import radians, sin, cos
 
-IMAGE_FOOD  = pygame.image.load('./assets/food.png', 'food')
+IMAGE_FOOD  = pygame.image.load('./assets/plant.png', 'food')
 IMAGE_EGG   = pygame.image.load('./assets/egg.png', 'food')
 
 COLOR_WHITE = (255,255,255)
@@ -14,11 +14,9 @@ class DrawUtil(object):
         self.camera = camera
         self.w = world
 
-    def creature(self, c: natura.Creature, highlight: bool = False):
+    def creature(self, c: natura.Creature):
         if c.is_baby():
             self.camera.draw_image(IMAGE_EGG, sub_vec(c.pos, (c.size_px/2, c.size_px/2)), c.size_px*2)
-
-            if highlight: self.camera.draw_circle((200, 200, 200), c.pos, c.size_px+1, 1)
         else:
             r = c.size_px
             self.camera.draw_circle(c.GENE_COLOR, c.pos, r)
@@ -32,7 +30,11 @@ class DrawUtil(object):
                     c.pos[0] + cos(c.angle+rad) * r, 
                     c.pos[1] + sin(c.angle+rad) * r), r / 4)
 
-            if highlight: self.camera.draw_circle((200, 200, 200), c.pos, r+5, 1)
+    def creature_highlight(self, c: natura.Creature):
+        if c.is_baby():
+            self.camera.draw_circle((200, 200, 200), c.pos, c.size_px+1, 1)
+        else:
+            self.camera.draw_circle((200, 200, 200), c.pos, c.size_px+5, 1)
 
     def creature_properties(self, creature: natura.Creature):
         font = pygame.font.SysFont("comicsans", 15)

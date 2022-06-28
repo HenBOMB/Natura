@@ -169,6 +169,18 @@ class Genome(neat.DefaultGenome):
         self.genes[Genes.MUTATE_RATE]       = Gene(.1, .2, .1, 1)
         self.genes[Genes.REPLACE_RATE]      = Gene(.1, .2, .1, 1)
 
+        self.set_value(Genes.ENERGY, 20)
+        self.set_value(Genes.HEALTH, 30)
+        self.set_value(Genes.SPEED, 100)
+        self.set_value(Genes.FOV, 45)
+        self.set_value(Genes.VIEW_RANGE, 5)
+        self.set_value(Genes.HUNGER_BIAS, .6)
+        self.set_value(Genes.REPRODUCTION_URGE, 0)
+        self.set_value(Genes.MATURITY_LENGTH, 4)
+        self.set_value(Genes.MATURITY_RATE, 1)
+        self.set_value(Genes.BABY_SIZE, .5)
+        self.set_value(Genes.BABY_MATURITY_LENGTH, .5)
+
     def configure_crossover(self, genome1, genome2, config):
         super().configure_crossover(genome1, genome2, config)
         for key in self.genes.keys():
@@ -178,21 +190,20 @@ class Genome(neat.DefaultGenome):
                 self.genes[key] = genome2.genes[key]
 
     def mutate_genes(self):
-        mutate_power    = self.get_value(Genes.MUTATE_POWER)
-        mutate_rate     = self.get_value(Genes.MUTATE_RATE)
-        replace_rate    = self.get_value(Genes.REPLACE_RATE)
+        pass
+        # mutate_power    = self.get_value(Genes.MUTATE_POWER)
+        # mutate_rate     = self.get_value(Genes.MUTATE_RATE)
+        # replace_rate    = self.get_value(Genes.REPLACE_RATE)
 
-        for key in self.genes.keys():
-            if key == Genes.MUTATE_POWER: break
-            self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
+        # for key in self.genes.keys():
+        #     if key == Genes.MUTATE_POWER: break
+        #     self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
 
     def mutate_add_connection(self, config):
         possible_outputs = list(iterkeys(self.nodes))
-        possible_outputs.pop(4)
-        possible_outputs.pop(4)
         out_node = choice(possible_outputs)
 
-        possible_inputs = possible_outputs + allowed_inputs#config.input_keys
+        possible_inputs = possible_outputs + config.input_keys
         in_node = choice(possible_inputs)
 
         key = (in_node, out_node)

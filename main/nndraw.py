@@ -27,8 +27,6 @@ HIDDEN_COLOR_4 = (135, 40, 40)
 
 NODE_FONT = pygame.font.SysFont("comicsans", 12)
 
-from natura.genome import allowed_inputs
-
 class NN:
 
     def __init__(self, config, genome: neat.DefaultGenome, pos: tuple, SCREEN_HEIGHT: int):
@@ -145,7 +143,6 @@ class Node:
         self.connection_count = 0
 
     def draw_node(self, surface: pygame.Surface):
-        if self.type == 0 and self.id not in allowed_inputs: return
         pygame.draw.circle(surface, self.color[0], (self.x, self.y), NODE_RADIUS, 0, False, True, True, False)
         pygame.draw.circle(surface, self.color[1], (self.x, self.y), NODE_RADIUS, 0, True, False, False, True)
 

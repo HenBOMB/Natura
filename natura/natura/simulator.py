@@ -14,15 +14,15 @@ DEFAULT_DELTA = 0.04
 def eval_genome(genome: Genome, config: neat.Config, width: int, height: int, max_fitness: int):
     tick_count  = 0
     world       = natura.World(width, height)
-    creature    = Creature(genome, config, (randint(-world.width, world.width), randint(-world.height, world.height)), world)
+    creature    = Creature(genome, config, (0, 0), world)
 
     world.spawn_food(250)
 
     while True:
-        if tick_count / 100 > max_fitness: return tick_count / 100
+        if creature.food_eaten > 20: return 20
         world.tick()
         creature.tick(DEFAULT_DELTA)
-        if creature.dead: return tick_count / 100
+        if creature.dead: return 0 if creature.food_eaten < 2 else creature.food_eaten
         tick_count += 1
 
 class NaturaSimulator():
@@ -74,11 +74,12 @@ class NaturaSimulator():
 
             creature: Creature
             for i, creature in enumerate(self.population):
+                if creature.food_eaten > 20: creature.dead = True
                 creature.tick(DEFAULT_DELTA, self.population)
 
-                if creature.health > 0: continue
+                if not creature.dead: continue
 
-                creature.genome.fitness = tick_count / 100
+                creature.genome.fitness = 0 if creature.food_eaten < 2 else creature.food_eaten
 
                 if not self.best_genomes[creature.species]: 
                     self.best_genomes[creature.species] = creature.genome
@@ -195,6 +196,7 @@ class NaturaNeatSimulator():
     def eval_genomes(self, genomes: list, config: neat.Config):
         tick_count  = 0
         population  = []
+        valid       = []
         best_genome = None
         
         self.world.clear()
@@ -215,8 +217,9 @@ class NaturaNeatSimulator():
                 _l = len(population)
                 if l != _l: genomes.append(population[_l-1].genome)
 
+                if creature.food_eaten > 20: creature.dead = True
                 if creature.dead:
-                    creature.genome.fitness = tick_count / 100
+                    creature.genome.fitness = 0 if creature.food_eaten < 2 else creature.food_eaten
 
                     if not best_genome: best_genome = creature.genome
                     elif best_genome.fitness < creature.genome.fitness: best_genome = creature.genome
@@ -322,9 +325,10 @@ class NeatSimulator():
             self.world.tick()
 
             for i, creature in enumerate(population):
+                if creature.food_eaten > 20: creature.dead = True
                 creature.tick(self.delta, population)
                 if creature.dead:
-                    creature.genome.fitness = tick_count / 100
+                    creature.genome.fitness = 0 if creature.food_eaten < 2 else creature.food_eaten
 
                     if not best_genome: best_genome = creature.genome
                     elif best_genome.fitness < creature.genome.fitness: best_genome = creature.genome

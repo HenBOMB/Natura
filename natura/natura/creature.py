@@ -110,9 +110,12 @@ class Creature(object):
         '''
 
         # generic values used by other proceses
-        self.color              = self.GENE_COLOR
-        self.species            = ""
-        self.consumption        = 0
+        self.color          = self.GENE_COLOR
+        self.species        = ""
+        self.consumption    = 0
+
+        # analytics
+        self.food_eaten     = 0
 
     def mature(self, delta):
         baby_maturity_length = self.GEN_MATURITY_LENGTH * self.GEN_BABY_MATURITY_LENGTH
@@ -209,40 +212,49 @@ class Creature(object):
             self.reproduction_urge = min(self.reproduction_urge, 1)
 
         inputs = (
-            # SENSES #
-
-            # health
-            percent(self.health, self.max_health),
-            # hungriness
-            round(_hungriness * 100),
-            # speed %
-            percent(self.speed, self.max_speed),
-            # urge to reproduce
-            self.reproduction_urge == 1,
-
-            # VISION #
-
-            # angle to closest creature
-            percent(_creature_angle, self.GENE_FOV),
-            # distance to closest creature
-            percent(_creature_dist, self.GENE_VIEW_RANGE),
-            # color of closest creature
-            percent(_crature_rgb[0], 255),
-            percent(_crature_rgb[1], 255),
-            percent(_crature_rgb[2], 255),
-            # creature count in sight
-            _creature_count,
             # angle to closest food
             percent(math.degrees(_food_angle), self.GENE_FOV),
             # distance to closest food
             percent(_food_dist, self.GENE_VIEW_RANGE),
             # food count in sight
             _food_count,
-            # color of closest food
-            percent(_food_rgb[0], 255),
-            percent(_food_rgb[1], 255),
-            percent(_food_rgb[2], 255),
         )
+
+        # inputs = (
+        #     # SENSES #
+
+        #     # health
+        #     percent(self.health, self.max_health),
+        #     # hungriness
+        #     round(_hungriness * 100),
+        #     # speed %
+        #     percent(self.speed, self.max_speed),
+        #     # urge to reproduce
+        #     self.reproduction_urge == 1,
+
+        #     # VISION #
+
+        #     # angle to closest creature
+        #     percent(_creature_angle, self.GENE_FOV),
+        #     # distance to closest creature
+        #     percent(_creature_dist, self.GENE_VIEW_RANGE),
+        #     # color of closest creature
+        #     percent(_crature_rgb[0], 255),
+        #     percent(_crature_rgb[1], 255),
+        #     percent(_crature_rgb[2], 255),
+        #     # creature count in sight
+        #     _creature_count,
+        #     # angle to closest food
+        #     percent(math.degrees(_food_angle), self.GENE_FOV),
+        #     # distance to closest food
+        #     percent(_food_dist, self.GENE_VIEW_RANGE),
+        #     # food count in sight
+        #     _food_count,
+        #     # color of closest food
+        #     percent(_food_rgb[0], 255),
+        #     percent(_food_rgb[1], 255),
+        #     percent(_food_rgb[2], 255),
+        # )
 
         _out = self.network.activate(inputs)
 
@@ -250,8 +262,7 @@ class Creature(object):
         _go_back            = _out[1] > .5
         _go_right           = _out[2] > .5
         _go_left            = _out[3] > .5
-        _go_eat_food        = True#out[4] > .5
-        _go_reproduce       = _out[5] > .5
+        _go_reproduce       = False#_out[5] > .5
 
         if _go_reproduce and pop and self.energy > self.min_energy and self.reproduction_urge == 1:
             self.reproduction_urge = 0
@@ -317,18 +328,18 @@ class Creature(object):
         if _go_left: self.angle -= math.pi / 2 * 4 * delta
         if _go_forward > .5:
             self.pos = (
-                max(-self.world.width,  min(self.world.width,  self.pos[0] + math.cos(self.angle) * meter_to_pixel(self.speed) * delta)), 
-                max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle) * meter_to_pixel(self.speed) * delta)))
+                max(-self.world.width,  min(self.world.width,  self.pos[0] + math.cos(self.angle) * self.speed * delta)), 
+                max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle) * self.speed * delta)))
         elif _go_back > .5:
             self.pos = (
-                max(-self.world.width,  min(self.world.width,  self.pos[0] + math.cos(self.angle + math.pi) * meter_to_pixel(self.speed) * delta)), 
-                max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle + math.pi) * meter_to_pixel(self.speed) * delta)))
+                max(-self.world.width,  min(self.world.width,  self.pos[0] + math.cos(self.angle + math.pi) * self.speed * delta)), 
+                max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle + math.pi) * self.speed * delta)))
 
         # https://journals.biologists.com/jeb/article/208/9/1717/9377/Body-size-energy-metabolism-and-lifespan
         # speed cost
-        self.consumption = self.speed / 2 * self.mass * delta * .05
+        # self.consumption = self.speed / 2 * self.mass * delta * .025
         # metabolism
-        self.consumption += self.mass * .05 * delta
+        self.consumption = self.mass * .05 * delta
 
         self.drain_energy(self.consumption)
 
@@ -340,14 +351,14 @@ class Creature(object):
             self.dead   = True
             return (inputs, _out)
 
-        if _go_eat_food:
-            if len(self.world.food) > 0:
-                food: Food = self.world.food[_food_index]
-                m = pixel_to_meter(self.size_px)
-                if _food_dist - m < food.radius:
-                    self.gain_energy(food.eat(m/3))
-                    if food.energy == 0:
-                        self.world.food.pop(_food_index)
+        if len(self.world.food) > 0:
+            food: Food = self.world.food[_food_index]
+            m = pixel_to_meter(self.size_px)
+            if _food_dist - m < food.radius:
+                self.gain_energy(food.eat(m/3))
+                self.food_eaten += 1
+                if food.energy == 0:
+                    self.world.food.pop(_food_index)
 
         return (inputs, _out)
     

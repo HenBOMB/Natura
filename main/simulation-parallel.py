@@ -13,17 +13,20 @@ if __name__ == '__main__':
     import multiprocessing
 
     if argutil.has_arg("help"):
-        print("Load the simulation from a checkpoint")
-        print("--cp [path]")
-        print("Maximum number of generations between save intervals")
-        print("--int [int]")
+        print("Load the simulation from a checkpoint, default is None")
+        print("--c [path]")
+        print("Maximum number of generations between save intervals, default is 50")
+        print("default is 50")
+        print("--i [int]")
+        print("The number of cpu workers to use, default is multiprocessing.cpu_count()")
+        print("--w [int]")
         import sys
         sys.exit()
 
     simulator       = natura.NeatSimulator(world)
-    checkpoint      = argutil.get_arg("cp", None)
-    interval        = int(argutil.get_arg("int", 50))
-    workers         = int(argutil.get_arg("work", multiprocessing.cpu_count()))
+    checkpoint      = argutil.get_arg("c", None)
+    interval        = int(argutil.get_arg("i", 100))
+    workers         = int(argutil.get_arg("w", multiprocessing.cpu_count()))
 
     if checkpoint:
         simulator.load_checkpoint(checkpoint)

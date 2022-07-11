@@ -15,9 +15,10 @@ POOP_ENERGY     = 0
 
 class Food():
     def __init__(self, pos: tuple, type: int = TYPE_PLANT):
-        self.color  = PLANT_COLOR  if type == TYPE_PLANT else MEAT_COLOR  if type == TYPE_MEAT else POOP_COLOR
         self.pos    = pos
-        self.radius = uniform(.3, 1)
+        self.radius = uniform(.3, .7)
+        self.type   = type
+        self.color  = PLANT_COLOR  if self.type == TYPE_PLANT else MEAT_COLOR  if self.type == TYPE_MEAT else POOP_COLOR
         self.update()
     
     def eat(self, radius: float) -> float:
@@ -31,5 +32,5 @@ class Food():
         return old_energy - self.energy
 
     def update(self):
-        div         = PLANT_ENERGY if type == TYPE_PLANT else MEAT_ENERGY if type == TYPE_MEAT else POOP_ENERGY
+        div         = PLANT_ENERGY if self.type == TYPE_PLANT else MEAT_ENERGY if self.type == TYPE_MEAT else POOP_ENERGY
         self.energy = circle_to_mass(self.radius) * div

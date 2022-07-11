@@ -4,11 +4,11 @@ if __name__ != '__main__':
 import argutil
 import sys
 
-if argutil.has_arg("help"):
+if argutil.has("help"):
     print("Load the simulation from a checkpoint")
-    print("--cp [path]")
+    print("--c [path]")
     print("Maximum number of generations between save intervals")
-    print("--int [int]")
+    print("--i [int]")
     sys.exit()
 
 import pygame
@@ -24,10 +24,10 @@ from nndraw import NN
 from camera import Camera
 from random import randint
 
-SCREEN_WIDTH        = 1600
+SCREEN_WIDTH        = 1000
 SCREEN_HEIGHT       = 1000
-WORLD_WIDTH         = 1500
-WORLD_HEIGHT        = 1500
+WORLD_WIDTH         = 100
+WORLD_HEIGHT        = 100
 FPS                 = 30
 
 TEXT_FONT           = pygame.font.SysFont("comicsans", 15)
@@ -55,6 +55,7 @@ def draw_stats(pop_count: int):
     CAMERA.screen.blit(surf, (0, 0))
     draw.text(f"Generation: {GENERATION}", (0, 0))
     draw.text(f"Pop count: {pop_count}", (0, 20))
+    draw.text(f"FPS: {util.round2(CAMERA.clock.get_fps())}", (0, 40))
 
 def draw_static():
     CAMERA.clear_screen()
@@ -99,7 +100,7 @@ def tick(population: list):
 
             for creature in population:
                 d = util.dist(CAMERA.fix_pos(creature.pos), pygame.mouse.get_pos())
-                if d < CAMERA.fix_scale(creature.size_px*2):
+                if d < CAMERA.fix_scale(creature.size*2):
                     CLICKED_CREATURE = creature
                     break
 
@@ -138,8 +139,8 @@ def tick(population: list):
 
     if DRAW_NETWORK:
         nndraw = NN(CLICKED_CREATURE.config, CLICKED_CREATURE.genome, (50, SCREEN_HEIGHT/2), SCREEN_HEIGHT)
-        nndraw.update_inputs(["" for i in range(0, 3)])
-        nndraw.update_outputs(["" for i in range(0, 4)])
+        nndraw.update_inputs([v for v in CLICKED_CREATURE.io[0]])
+        nndraw.update_outputs([v for v in CLICKED_CREATURE.io[1]])
         nndraw.draw(CAMERA.screen)
         
     if DRAW_PROPERTIES:
@@ -156,7 +157,7 @@ def tick(population: list):
 simulator = NaturaNeatSimulator(WORLD)
 
 # simulator = NaturaSimulator(WORLD)
-cp = argutil.get_arg("cp", None)
+cp = argutil.get("c", None)
 
 if cp:
     # simulator.load(cp)
@@ -170,7 +171,7 @@ if cp:
 #     simulator.init(config)
 #     simulator.spawn_species("uwu", (0, 0), WORLD_WIDTH/2, 50, (255, 255, 100))
 
-simulator.run(argutil.get_arg("int", 30), None, tick, end_gen)
+simulator.run(argutil.get("i", 50), None, tick, end_gen)
 
 GENERATION = simulator.pop.generation
 

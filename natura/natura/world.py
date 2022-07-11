@@ -8,7 +8,7 @@ class World():
         self.height = height
         self.gravity = gravity
 
-    def tick(self, limit = 300, chance = .1):
+    def tick(self, limit = 1000, chance = .1):
         if len(self.food) >= limit: return
         if random() <= chance: self.spawn_food(1)
 

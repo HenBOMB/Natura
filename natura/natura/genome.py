@@ -1,19 +1,11 @@
 from enum import Enum
 import neat
-import pickle
 
 from random import gauss, random, uniform, randint, choice, random
 from natura.util import clamp
 from neat.six_util import iterkeys
 from neat.graphs import creates_cycle
 
-# https://neat-python.readthedocs.io/en/latest/_modules/attributes.html?highlight=mutate_value#
-
-# TODO: Add nature laws, for eg: baby size relative to parent must not be half the parent's size
-# basically all creature inputs and food color
-# TODO: This is temporary
-allowed_inputs      = [-11, -12, -13]
-allowed_outputs     = [1, 2, 3, 4]
 
 class Genes(Enum):
     ENERGY              = "aa"
@@ -154,9 +146,9 @@ class Genome(neat.DefaultGenome):
         if skip: return
         self.genes[Genes.ENERGY]            = Gene(15, 30, type=Gene.TYPE_INT) 
         self.genes[Genes.HEALTH]            = Gene(10, 50, type=Gene.TYPE_INT)
-        self.genes[Genes.SPEED]             = Gene(0.1, 2, 0)
+        self.genes[Genes.SPEED]             = Gene(2, 4, 0)
         self.genes[Genes.FOV]               = Gene(20, 50, 100, type=Gene.TYPE_INT)
-        self.genes[Genes.VIEW_RANGE]        = Gene(3, 6, 0, 10, Gene.TYPE_INT)
+        self.genes[Genes.VIEW_RANGE]        = Gene(500, 1000, type=Gene.TYPE_INT)
         self.genes[Genes.COLOR]             = Gene((20, 20, 20), (210, 210, 210), 0, 255, Gene.TYPE_TUPLE)
         self.genes[Genes.HUNGER_BIAS]       = Gene(.4,  .8,   .1, 1)
         self.genes[Genes.REPRODUCTION_URGE] = Gene(.1,   1,    0, 2)
@@ -169,11 +161,13 @@ class Genome(neat.DefaultGenome):
         self.genes[Genes.MUTATE_RATE]       = Gene(.1, .2, .1, 1)
         self.genes[Genes.REPLACE_RATE]      = Gene(.1, .2, .1, 1)
 
+        # NOTE: Careful with this
+
         self.set_value(Genes.ENERGY, 20)
         self.set_value(Genes.HEALTH, 30)
-        self.set_value(Genes.SPEED, 100)
+        self.set_value(Genes.SPEED, 6)
         self.set_value(Genes.FOV, 45)
-        self.set_value(Genes.VIEW_RANGE, 5)
+        self.set_value(Genes.VIEW_RANGE, 200)
         self.set_value(Genes.HUNGER_BIAS, .6)
         self.set_value(Genes.REPRODUCTION_URGE, 0)
         self.set_value(Genes.MATURITY_LENGTH, 4)
@@ -181,13 +175,13 @@ class Genome(neat.DefaultGenome):
         self.set_value(Genes.BABY_SIZE, .5)
         self.set_value(Genes.BABY_MATURITY_LENGTH, .5)
 
-    def configure_crossover(self, genome1, genome2, config):
-        super().configure_crossover(genome1, genome2, config)
-        for key in self.genes.keys():
-            if random() > 0.5:
-                self.genes[key] = genome1.genes[key]
-            else: 
-                self.genes[key] = genome2.genes[key]
+    # def configure_crossover(self, genome1, genome2, config):
+    #     super().configure_crossover(genome1, genome2, config)
+    #     for key in self.genes.keys():
+    #         if random() > 0.5:
+    #             self.genes[key] = genome1.genes[key]
+    #         else: 
+    #             self.genes[key] = genome2.genes[key]
 
     def mutate_genes(self):
         pass
@@ -199,28 +193,6 @@ class Genome(neat.DefaultGenome):
         #     if key == Genes.MUTATE_POWER: break
         #     self.genes[key].mutate(mutate_power, mutate_rate, replace_rate)
 
-    def mutate_add_connection(self, config):
-        possible_outputs = list(iterkeys(self.nodes))
-        out_node = choice(possible_outputs)
-
-        possible_inputs = possible_outputs + config.input_keys
-        in_node = choice(possible_inputs)
-
-        key = (in_node, out_node)
-        if key in self.connections:
-            if config.check_structural_mutation_surer():
-                self.connections[key].enabled = True
-            return
-
-        if in_node in config.output_keys and out_node in config.output_keys:
-            return
-
-        if config.feed_forward and creates_cycle(list(iterkeys(self.connections)), key):
-            return
-
-        cg = self.create_connection(config, in_node, out_node)
-        self.connections[cg.key] = cg
-
     def get_value(self, key: str) -> float | int | tuple: 
         return self.genes[key].value
 
@@ -229,14 +201,3 @@ class Genome(neat.DefaultGenome):
 
     def set_genes(self, genes: dict):
         self.genes = genes
-    
-    def save(self, path: str):
-        with open(path, 'wb') as f:
-            pickle.dump(self.genes, f)
-            print(f"Saved {len(self.genes)} genes to {path}")
-
-    def load(self, path: str):
-        with open(path, 'rb') as f:
-            self.genes = pickle.load(f)
-            print(f"Loaded {len(self.genes)} genes from {path}")
-

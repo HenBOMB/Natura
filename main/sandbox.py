@@ -21,6 +21,8 @@ WORLD           = natura.World(SCREEN_WIDTH, SCREEN_HEIGHT)
 POPULATION      = []
 draw            = drawutil.DrawUtil(CAMERA, WORLD)
 
+WORLD.spawn_food(250)
+
 config = neat.Config(
     natura.Genome, neat.DefaultReproduction,
     neat.DefaultSpeciesSet, neat.DefaultStagnation,

@@ -5,7 +5,7 @@ import neat
 from natura.food import Food
 from natura.genome import Genome, Genes
 from natura.world import World
-from natura.util import dist, angle_vec, sub_vec, percent, clamp, pixel_to_meter, meter_to_pixel, lerp, circle_to_mass
+from natura.util import dist, angle_vec, sub_vec, percent, clamp, lerp, circle_to_mass
 from random import random
 
 # https://discord.com/channels/@me/935436884681846854/990679103512408235
@@ -29,6 +29,10 @@ class Creature(object):
         self.GEN_MATURITY_LENGTH        = genome.get_value(Genes.MATURITY_LENGTH)
         self.GEN_MATURITY_RATE          = genome.get_value(Genes.MATURITY_RATE)
         self.GEN_BABY_MATURITY_LENGTH   = genome.get_value(Genes.BABY_MATURITY_LENGTH)
+
+        # NEW
+        self.focus              = 1 # 0-1
+        self.focus_speed        = .25 # sec
 
         self.maturity           = self.GEN_MATURITY_LENGTH * (1-int(is_baby))
         self.min_size           = genome.get_value(Genes.BABY_SIZE)
@@ -63,11 +67,11 @@ class Creature(object):
         self.reproduction_urge  = 0
         self.dead               = False
 
-        # this is nescessary because mature() will not run if 1
+        # this is nescessary because mature() will not run if it spawns as a non baby
         # either way, if it did ran, it wouldn't change any of the values
         self.energy             = self.max_energy
         self.health             = self.max_health
-        self.size_px            = meter_to_pixel(self.max_size)
+        self.size               = self.max_size
         self.mass               = circle_to_mass(self.max_size)
         self.weight             = self.mass * self.world.gravity
 
@@ -116,6 +120,7 @@ class Creature(object):
 
         # analytics
         self.food_eaten     = 0
+        self.io             = ((), ())
 
     def mature(self, delta):
         baby_maturity_length = self.GEN_MATURITY_LENGTH * self.GEN_BABY_MATURITY_LENGTH
@@ -129,13 +134,12 @@ class Creature(object):
             self.GENE_REP_URGE = self.genome.get_value(Genes.REPRODUCTION_URGE)
 
         if self.is_baby():      
-            self.size_px = self.min_size
+            self.size = self.min_size
         else:  
             bby_perc = min(self.maturity / baby_maturity_length, baby_maturity_length)
-            self.size_px = lerp(self.min_size, self.max_size, (self.maturity - bby_perc) / (self.GEN_MATURITY_LENGTH - bby_perc))
+            self.size = lerp(self.min_size, self.max_size, (self.maturity - bby_perc) / (self.GEN_MATURITY_LENGTH - bby_perc))
 
-        self.mass       = circle_to_mass(self.size_px)
-        self.size_px    = meter_to_pixel(self.size_px)
+        self.mass       = circle_to_mass(self.size)
         self.weight     = self.mass * self.world.gravity
         self.max_speed  = self.GENE_SPEED * perc
         self.max_health = self.GENE_HEALTH * perc
@@ -184,10 +188,10 @@ class Creature(object):
         # has more control rather than multiplying the value by delta!!
 
         if pop != None:
-            _v = self.get_closest(fwd, self.GENE_VIEW_RANGE, pop)
+            _v = self.get_closest(fwd, pop)
             _creature_dist, _creature_angle, _crature_rgb, _creature_count, _ = _v
 
-        _v = self.get_closest(fwd, self.GENE_VIEW_RANGE, self.world.food)
+        _v = self.get_closest(fwd, self.world.food)
         _food_dist, _food_angle, _food_rgb, _food_count, _food_index = _v
             
         # A observer class inherit from sense, returns info from external information
@@ -213,7 +217,7 @@ class Creature(object):
 
         inputs = (
             # angle to closest food
-            percent(math.degrees(_food_angle), self.GENE_FOV),
+            percent(_food_angle, self.GENE_FOV),
             # distance to closest food
             percent(_food_dist, self.GENE_VIEW_RANGE),
             # food count in sight
@@ -245,7 +249,7 @@ class Creature(object):
         #     # creature count in sight
         #     _creature_count,
         #     # angle to closest food
-        #     percent(math.degrees(_food_angle), self.GENE_FOV),
+        #     percent(_food_angle, self.GENE_FOV),
         #     # distance to closest food
         #     percent(_food_dist, self.GENE_VIEW_RANGE),
         #     # food count in sight
@@ -257,6 +261,8 @@ class Creature(object):
         # )
 
         _out = self.network.activate(inputs)
+
+        self.io = (inputs, _out)
 
         _go_forward         = _out[0] > .5
         _go_back            = _out[1] > .5
@@ -270,7 +276,6 @@ class Creature(object):
 
         self.speed = self.max_speed if _go_forward else self.max_speed / 1.5 if _go_back else 0
 
-        # TODO: Using physics to move the creature
         '''
         testing: using physics to move the creature
 
@@ -322,15 +327,48 @@ class Creature(object):
         # new_speed = work / (0.5 * mass)
 
         new_speed += new_v * delta
+      
+        Use torque to drive the rotation of the creature
+        https://lambdageeks.com/how-does-torque-work/
+
+        m = 28kg
+        ω = 4π rad/s2
+        r = 25cm = 0.25m
+
+        N.m = (1/2*m*r^2) * ω
+
+        or maybe, instead of just adding the rotation with delta, make it smoothly interpolate there, because now it 
+        just jumps from positive to negative, causing that jitter..?
+
+        lets just wait for the results of the torque version:
+
+        for sure a lot less jittery, but there's still some in there
         '''
 
-        if _go_right: self.angle += math.pi / 2 * 4 * delta
-        if _go_left: self.angle -= math.pi / 2 * 4 * delta
+        torque = 0
+
+        self.focus = min(1, self.focus + .1 * delta)
+        
+        if _go_right: 
+            self.focus -= .3 * delta
+            self.angle = lerp(self.angle, self.angle + math.pi * 2, delta * 2)
+            # torque += (1/2 * self.weight * self.size**2) * math.pi * 2
+            # self.angle += math.pi * 2 * delta
+
+        if _go_left: 
+            self.focus -= .3 * delta
+            self.angle = lerp(self.angle, self.angle - math.pi * 2, delta * 2)
+            # torque += torque * 2 if torque else (1/2 * self.weight * self.size**2) * math.pi * 2
+            # self.angle -= math.pi * 2 * delta
+
+        self.focus = max(0, self.focus)
+
         if _go_forward > .5:
             self.pos = (
                 max(-self.world.width,  min(self.world.width,  self.pos[0] + math.cos(self.angle) * self.speed * delta)), 
                 max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle) * self.speed * delta)))
-        elif _go_back > .5:
+
+        if _go_back > .5:
             self.pos = (
                 max(-self.world.width,  min(self.world.width,  self.pos[0] + math.cos(self.angle + math.pi) * self.speed * delta)), 
                 max(-self.world.height, min(self.world.height, self.pos[1] + math.sin(self.angle + math.pi) * self.speed * delta)))
@@ -339,7 +377,9 @@ class Creature(object):
         # speed cost
         # self.consumption = self.speed / 2 * self.mass * delta * .025
         # metabolism
+        # NOTE: This is sus
         self.consumption = self.mass * .05 * delta
+        # self.consumption += torque * .05 * delta * delta
 
         self.drain_energy(self.consumption)
 
@@ -351,23 +391,24 @@ class Creature(object):
             self.dead   = True
             return (inputs, _out)
 
-        if len(self.world.food) > 0:
+        if _food_dist != self.GENE_VIEW_RANGE:
             food: Food = self.world.food[_food_index]
-            m = pixel_to_meter(self.size_px)
-            if _food_dist - m < food.radius:
-                self.gain_energy(food.eat(m/3))
+            if _food_dist - self.size < food.radius * 2:
+                self.gain_energy(food.eat(self.size/3))
                 self.food_eaten += 1
                 if food.energy == 0:
                     self.world.food.pop(_food_index)
 
         return (inputs, _out)
     
-    def get_closest(self, fwd: tuple, max_dist: int, array: list):
-        _dist   = max_dist
+    def get_closest(self, fwd: tuple, array: list):
+        _dist   = self.GENE_VIEW_RANGE
         _angle  = 0
         _color  = (0, 0, 0)
         _count  = 0
         _index  = 0
+
+        if self.focus < 0.8: return (_dist, _angle, _color, _count, _index)
 
         for i, item in enumerate(array):
             angle = angle_vec(fwd, sub_vec(item.pos, self.pos))
@@ -375,7 +416,7 @@ class Creature(object):
 
             _count += 1
 
-            d = pixel_to_meter(dist(item.pos, self.pos))
+            d = dist(item.pos, self.pos)
             if d >= _dist: continue
 
             right = (math.cos(self.angle + math.pi / 2), math.sin(self.angle + math.pi / 2))
@@ -384,7 +425,7 @@ class Creature(object):
             if angle_right > 90: angle *= -1
 
             _dist = d
-            _angle = math.radians(angle)
+            _angle = angle
             _color = item.color
             _index = i
 

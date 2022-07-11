@@ -1,7 +1,8 @@
 import natura
 import pygame
 
-from natura.util import percent, round2, pixel_to_meter, sub_vec, meter_to_pixel
+from natura.util import percent, round2, sub_vec
+from natura.food import Food
 from math import radians, sin, cos
 
 IMAGE_FOOD  = pygame.image.load('./assets/plant.png', 'food')
@@ -16,9 +17,9 @@ class DrawUtil(object):
 
     def creature(self, c: natura.Creature):
         if c.is_baby():
-            self.camera.draw_image(IMAGE_EGG, sub_vec(c.pos, (c.size_px/2, c.size_px/2)), c.size_px*2)
+            self.camera.draw_image(IMAGE_EGG, sub_vec(c.pos, (c.size/2, c.size/2)), c.size*2)
         else:
-            r = c.size_px
+            r = c.size
             self.camera.draw_circle(c.GENE_COLOR, c.pos, r)
             rad = radians(c.GENE_FOV/1.5)
 
@@ -32,9 +33,9 @@ class DrawUtil(object):
 
     def creature_highlight(self, c: natura.Creature):
         if c.is_baby():
-            self.camera.draw_circle((200, 200, 200), c.pos, c.size_px+1, 1)
+            self.camera.draw_circle((200, 200, 200), c.pos, c.size+1, 1)
         else:
-            self.camera.draw_circle((200, 200, 200), c.pos, c.size_px+5, 1)
+            self.camera.draw_circle((200, 200, 200), c.pos, c.size+5, 1)
 
     def creature_properties(self, creature: natura.Creature):
         font = pygame.font.SysFont("comicsans", 15)
@@ -44,13 +45,14 @@ class DrawUtil(object):
         d["Energy"]     = f"{percent(creature.energy, creature.max_energy)}% - {round2(creature.energy)} / {round2(creature.max_energy)}"
         d["Speed"]      = f"{percent(creature.speed, creature.max_speed)}% - {round2(creature.speed)} {round2(creature.GENE_SPEED)}"
         d["Hunger"]     = round2(creature.GENE_HUNGER)
-        d["Size"]       = f"{round2(pixel_to_meter(creature.size_px))} - {round2(creature.min_size)} / {round2(creature.max_size)} meters"
+        d["Size"]       = f"{round2(creature.size)} - {round2(creature.min_size)} / {round2(creature.max_size)} meters"
         d["Fov"]        = creature.GENE_FOV
         d["View Range"] = creature.GENE_VIEW_RANGE
         d["Age"]        = f"{percent(creature.maturity, creature.GEN_MATURITY_LENGTH)} - {round2(creature.GEN_MATURITY_LENGTH)}"
         m = creature.GEN_MATURITY_LENGTH * creature.GEN_BABY_MATURITY_LENGTH
         d["Baby Age"]   = f"{percent(min(creature.maturity, m), m)} - {round2(m)}"
-        d["Cons."]      = f"{creature.consumption} e/sec"
+        d["Focus"]      = f"{round2(percent(creature.focus, 1))}"
+        d["Cons."]      = f"{creature.consumption} e/s"
 
         spacing = 15
         width, height = (500, len(d)*spacing+spacing/2)
@@ -71,9 +73,10 @@ class DrawUtil(object):
             draw_v_txt(d[k], i)
 
     def world(self):
+        food: Food
         for food in self.w.food:
-            r = meter_to_pixel(food.radius)
-            self.camera.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r * 2)
+            self.camera.draw_circle(food.color, (food.pos[0] - food.radius / 2, food.pos[1] - food.radius / 2), food.radius)
+            # self.camera.draw_image(IMAGE_FOOD, (food.pos[0] - r / 2, food.pos[1] - r / 2), r * 2)
 
     def text(self, txt: str, pos: tuple, color = COLOR_WHITE, font = None):
         font = font or pygame.font.SysFont("comicsans", 15)

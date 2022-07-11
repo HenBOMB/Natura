@@ -11,18 +11,20 @@ from itertools import count
 
 DEFAULT_DELTA = 0.04
 
+FOOD_COUNT = 350
+
 def eval_genome(genome: Genome, config: neat.Config, width: int, height: int, max_fitness: int):
     tick_count  = 0
     world       = natura.World(width, height)
     creature    = Creature(genome, config, (0, 0), world)
 
-    world.spawn_food(250)
+    world.spawn_food(FOOD_COUNT)
 
     while True:
         if creature.food_eaten > 20: return 20
         world.tick()
         creature.tick(DEFAULT_DELTA)
-        if creature.dead: return 0 if creature.food_eaten < 2 else creature.food_eaten
+        if creature.dead: return creature.food_eaten
         tick_count += 1
 
 class NaturaSimulator():
@@ -65,7 +67,7 @@ class NaturaSimulator():
     def start_generation(self, func):
         self.spawn_population()
         self.world.clear()
-        self.world.spawn_food(250)
+        self.world.spawn_food(FOOD_COUNT)
 
         tick_count = 0
 
@@ -196,11 +198,9 @@ class NaturaNeatSimulator():
     def eval_genomes(self, genomes: list, config: neat.Config):
         tick_count  = 0
         population  = []
-        valid       = []
-        best_genome = None
         
         self.world.clear()
-        self.world.spawn_food(250)
+        self.world.spawn_food(FOOD_COUNT)
 
         for genome_id, genome in genomes:
             genome.fitness = 0
@@ -217,15 +217,13 @@ class NaturaNeatSimulator():
                 _l = len(population)
                 if l != _l: genomes.append(population[_l-1].genome)
 
-                if creature.food_eaten > 20: creature.dead = True
-                if creature.dead:
-                    creature.genome.fitness = 0 if creature.food_eaten < 2 else creature.food_eaten
+                if creature.food_eaten > 40: creature.dead = True
 
-                    if not best_genome: best_genome = creature.genome
-                    elif best_genome.fitness < creature.genome.fitness: best_genome = creature.genome
+                if creature.dead:
+                    creature.genome.fitness = creature.food_eaten
 
                     population.pop(i)
-                    if l - 1 == 0: 
+                    if _l - 1 == 0: 
                         if self.end_gen_function: self.end_gen_function(self.pop.generation)
                         return
 
@@ -314,7 +312,7 @@ class NeatSimulator():
         best_genome = None
         
         self.world.clear()
-        self.world.spawn_food(250)
+        self.world.spawn_food(FOOD_COUNT)
 
         for genome_id, genome in genomes:
             genome.fitness = 0

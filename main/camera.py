@@ -7,7 +7,7 @@ class Camera():
         self.cam_pos = (0, 0)
         self.offset_x = SCREEN_WIDTH / 2
         self.offset_y = SCREEN_HEIGHT / 2
-        self.zoom_scale = 1
+        self.zoom_scale = .5
         self.click_offset_x = 0
         self.click_offset_y = 0
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -22,7 +22,9 @@ class Camera():
         self.clock.tick(fps)
     
     def pan_camera(self, pos: tuple):
-        v = clamp(self.zoom_scale, .4, 2)
+        # v = clamp(self.zoom_scale, .4, 2)
+        v = lerp(.01, .4, self.zoom_scale)
+
         # v = v if v < 1 else lerp(2, 7, (v-.9))
         self.offset_x = (self.click_offset_x + (pos[0] - self.cam_pos[0]) * v)
         self.offset_y = (self.click_offset_y + (pos[1] - self.cam_pos[1]) * v)
@@ -31,7 +33,7 @@ class Camera():
         self.offset_x, self.offset_y = (self.screen_width / 2 - pos[0], self.screen_height / 2 - pos[1])
 
     def zoom(self, dir: int):
-        self.zoom_scale = clamp(dir * .1 + self.zoom_scale, 0, 1.9)
+        self.zoom_scale = clamp(dir * .1 + self.zoom_scale, 0, 1)
 
     def set_pos(self, pos: tuple):
         self.cam_pos = pos
@@ -39,15 +41,19 @@ class Camera():
         self.click_offset_y = self.offset_y
 
     def fix_pos(self, pos: tuple, offset: float = 0):
+        magnitude = lerp(50, 0, self.zoom_scale)
+
         pos = (
             pos[0] + self.offset_x + offset, 
             pos[1] + self.offset_y + offset)
         return (
-            pos[0] + pos[0] * (1-self.zoom_scale) - self.screen_width / 2 * (1-self.zoom_scale), 
-            pos[1] + pos[1] * (1-self.zoom_scale) - self.screen_height / 2 * (1-self.zoom_scale))
+            pos[0] + pos[0] * magnitude - self.screen_width / 2 * magnitude, 
+            pos[1] + pos[1] * magnitude - self.screen_height / 2 * magnitude)
 
     def fix_scale(self, scale: float):
-        return scale * (2-self.zoom_scale)
+        magnitude = lerp(50, 0, self.zoom_scale)
+
+        return scale * (magnitude+1)
 
     def clear_screen(self, color: tuple = (0, 0, 0)):
         self.screen.fill(color)

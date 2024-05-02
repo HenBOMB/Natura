@@ -12,5 +12,3 @@ setup(
     # packages        = find_packages(exclude=['neat'], include=['natura', 'natura/reporters']),
     zip_safe        = False
 )
-
-# https://www.ictshore.com/python/create-python-modules-tutorial/
